@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "Z8ex6a46ZTD935IhONzeFtc/0cVVdlCTwArDCvDzucy5S4LPJ43c+8Lzr2KZHITMCoXgj3OiAyYNkno0jcvW0g==",
+  "success": true,
+  "projectFilePath": "/Users/millemollen/Desktop/ITU/Semester 4/F#/Code/Scrabble Project/ScrabbleBotProj/ScrabbleBot/ScrabbleBot/ScrabbleBot.fsproj",
+  "expectedPackageFiles": [
+    "/Users/millemollen/.nuget/packages/fparsec/1.1.1/fparsec.1.1.1.nupkg.sha512",
+    "/Users/millemollen/.nuget/packages/fsharp.core/7.0.200/fsharp.core.7.0.200.nupkg.sha512",
+    "/Users/millemollen/.nuget/packages/microsoft.netcore.app.ref/7.0.16/microsoft.netcore.app.ref.7.0.16.nupkg.sha512",
+    "/Users/millemollen/.nuget/packages/microsoft.aspnetcore.app.ref/7.0.16/microsoft.aspnetcore.app.ref.7.0.16.nupkg.sha512"
+  ],
+  "logs": []
+}
