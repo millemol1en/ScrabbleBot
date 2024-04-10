@@ -944,11 +944,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleTemplate\\ScrabbleTemplate.fsproj",
+      "projectUniqueName": "C:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleTemplate\\ScrabbleTemplate.fsproj",
       "projectName": "ScrabbleTemplate",
-      "projectPath": "c:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleTemplate\\ScrabbleTemplate.fsproj",
+      "projectPath": "C:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleTemplate\\ScrabbleTemplate.fsproj",
       "packagesPath": "C:\\Users\\Bruger\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleTemplate\\obj\\",
+      "outputPath": "C:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleTemplate\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\Bruger\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -966,8 +966,8 @@
         "net7.0": {
           "targetAlias": "net7.0",
           "projectReferences": {
-            "c:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj": {
-              "projectPath": "c:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj"
+            "C:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj": {
+              "projectPath": "C:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj"
             }
           }
         }
