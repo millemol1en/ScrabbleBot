@@ -154,26 +154,27 @@
     ]
   },
   "packageFolders": {
-    "/Users/millemollen/.nuget/packages/": {}
+    "C:\\Users\\Bruger\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/millemollen/Desktop/ITU/Semester 4/F#/Code/Scrabble Project/ScrabbleBotProj/ScrabbleBot/ScrabbleBot/ScrabbleBot.fsproj",
+      "projectUniqueName": "c:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj",
       "projectName": "ScrabbleBot",
-      "projectPath": "/Users/millemollen/Desktop/ITU/Semester 4/F#/Code/Scrabble Project/ScrabbleBotProj/ScrabbleBot/ScrabbleBot/ScrabbleBot.fsproj",
-      "packagesPath": "/Users/millemollen/.nuget/packages/",
-      "outputPath": "/Users/millemollen/Desktop/ITU/Semester 4/F#/Code/Scrabble Project/ScrabbleBotProj/ScrabbleBot/ScrabbleBot/obj/",
+      "projectPath": "c:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj",
+      "packagesPath": "C:\\Users\\Bruger\\.nuget\\packages\\",
+      "outputPath": "c:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/millemollen/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\Bruger\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net7.0"
       ],
       "sources": {
-        "/usr/local/share/dotnet/library-packs": {},
-        "/usr/local/share/dotnet/sdk/8.0.201/FSharp/library-packs": {},
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Program Files\\dotnet\\sdk\\8.0.100-rc.2.23502.2\\FSharp\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -213,11 +214,15 @@
         "downloadDependencies": [
           {
             "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[7.0.16, 7.0.16]"
+            "version": "[7.0.12, 7.0.12]"
           },
           {
             "name": "Microsoft.NETCore.App.Ref",
-            "version": "[7.0.16, 7.0.16]"
+            "version": "[7.0.12, 7.0.12]"
+          },
+          {
+            "name": "Microsoft.WindowsDesktop.App.Ref",
+            "version": "[7.0.12, 7.0.12]"
           }
         ],
         "frameworkReferences": {
@@ -225,7 +230,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.201/RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.100-rc.2.23502.2\\RuntimeIdentifierGraph.json"
       }
     }
   }

@@ -1,0 +1,14 @@
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\bin\Debug\net7.0\ScrabbleBot.deps.json
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\bin\Debug\net7.0\ScrabbleBot.dll
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\bin\Debug\net7.0\ScrabbleBot.pdb
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\bin\Debug\net7.0\ScrabbleUtil.dll
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\obj\Debug\net7.0\ScrabbleBot.fsproj.AssemblyReference.cache
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\obj\Debug\net7.0\ScrabbleBot.AssemblyInfoInputs.cache
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\obj\Debug\net7.0\ScrabbleBot.AssemblyInfo.fs
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\obj\Debug\net7.0\ScrabbleBot.fsproj.CoreCompileInputs.cache
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\obj\Debug\net7.0\ScrabbleBot.sourcelink.json
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\obj\Debug\net7.0\ScrabbleBot.fsproj.CopyComplete
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\obj\Debug\net7.0\ScrabbleBot.dll
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\obj\Debug\net7.0\refint\ScrabbleBot.dll
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\obj\Debug\net7.0\ScrabbleBot.pdb
+C:\Users\Bruger\OneDrive\Documents\.ITU\4.Semester\FuntionalProgramming\Scrabble\ScrabbleBot\ScrabbleBot\obj\Debug\net7.0\ref\ScrabbleBot.dll
