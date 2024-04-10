@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj": {}
+    "c:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj": {}
   },
   "projects": {
-    "C:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj": {
+    "c:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj",
+        "projectUniqueName": "c:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj",
         "projectName": "ScrabbleBot",
-        "projectPath": "C:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj",
+        "projectPath": "c:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\ScrabbleBot.fsproj",
         "packagesPath": "C:\\Users\\Bruger\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\obj\\",
+        "outputPath": "c:\\Users\\Bruger\\OneDrive\\Documents\\.ITU\\4.Semester\\FuntionalProgramming\\Scrabble\\ScrabbleBot\\ScrabbleBot\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Bruger\\AppData\\Roaming\\NuGet\\NuGet.Config",
