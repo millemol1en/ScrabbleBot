@@ -39,7 +39,6 @@ module internal MultiSet
     let removeSingle (a : 'a) (mySet : MultiSet<'a>) : MultiSet<'a> = 
         remove a 1u mySet
 
-
     let fold (f : 'b -> 'a -> uint32 -> 'b) (x : 'b) (R mySet : MultiSet<'a>) = 
         Map.fold f x mySet
 
