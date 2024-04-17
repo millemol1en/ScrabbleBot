@@ -1,4 +1,4 @@
-﻿namespace YourClientName
+﻿namespace ScrabBoyz
 
 open ScrabbleUtil
 open ScrabbleUtil.ServerCommunication
