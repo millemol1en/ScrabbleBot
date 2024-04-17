@@ -6,7 +6,7 @@ module internal TrieDictionary
     type TrieDict =
     | TrieNode of bool * Map<char, TrieDict>
       
-    let emptyTrie = TrieNode(false, Map.empty)
+    let emptyTrie () = TrieNode(false, Map.empty)
        
     let iStrings = ["HELLO"; "HEEHAW"; "HARROW"; "HEAL"; "HEDGE"; "ARROW"; "ARCH"]
         
@@ -21,7 +21,7 @@ module internal TrieDictionary
                 match trieDict with
                 | TrieNode (b, m) ->
                     match m.TryFind(cHead) with
-                    | None   -> TrieNode (b, m.Add(cHead, (insertHelper cTail emptyTrie)))  //| Case 1 :: We couldn't find a character in the Map, so 
+                    | None   -> TrieNode (b, m.Add(cHead, (insertHelper cTail (emptyTrie ()))))  //| Case 1 :: We couldn't find a character in the Map, so 
                     | Some x -> TrieNode (b, m.Add(cHead, (insertHelper cTail x)))          //| Case 2 :: We located a character representing this node 
         
         insertHelper [for c in s -> c] t
@@ -48,13 +48,5 @@ module internal TrieDictionary
             | [] -> acc
             | sHead :: sTail -> insertListOfStringAcc sTail (insert sHead acc)
             
-        insertListOfStringAcc l emptyTrie
-    
-    let step c dict =
-        let aux =
-            function
-            | c1, TrieNode (b, m) ->
-                match m.TryFind(c1) with
-                | None                -> None
-                | Some (TrieNode(bo, m1)) -> Some (bo, TrieNode(bo, m1))
-        aux (c, dict)
+        insertListOfStringAcc l (emptyTrie ())
+   
