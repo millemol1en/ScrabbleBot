@@ -36,12 +36,11 @@ let main argv =
 //    let board      = ScrabbleUtil.InfiniteHoleBoard.infiniteHoleBoard ()
 
     let words     = readLines "./Dictionaries/English.txt"
-
-    let handSize   = 7u
-    let timeout    = None
-    let tiles      = ScrabbleUtil.English.tiles 1u
-    let seed       = None
-    let port       = 13001
+    let handSize  = 7u
+    let timeout   = None
+    let tiles     = ScrabbleUtil.English.tiles 1u
+    let seed      = None
+    let port      = 13001
 
     let dictAPI =
         // Uncomment if you have implemented a dictionary. last element None if you have not implemented a GADDAG
@@ -56,10 +55,7 @@ let main argv =
 
     let players    = [("ScrabBoyz", dictionary, ScrabBoyz.Scrabble.startGame); ("Oxyphenbutazone", dictionary, Oxyphenbutazone.Scrabble.startGame)] 
 
-    
-
     //let players = spawnMultiples "OxyphenButazone" dictionary Oxyphenbutazone.Scrabble.startGame 2
-
 
     do ScrabbleServer.Comm.startGame 
           board dictionary handSize timeout tiles seed port players
