@@ -43,13 +43,8 @@ let main argv =
     let port      = 13001
 
     let dictAPI =
-        // Uncomment if you have implemented a dictionary. last element None if you have not implemented a GADDAG
-        // Some (Dictionary.empty, Dictionary.insert, Dictionary.step, Some Dictionary.reverse) 
-        None
-        
-    // Uncomment this line to call your client
-    
-    
+        Some (TrieDictionary.empty, TrieDictionary.insert, TrieDictionary.step, None)
+            
     let (dictionary, time) =
         time (fun () -> ScrabbleUtil.Dictionary.mkDict words dictAPI)
 
