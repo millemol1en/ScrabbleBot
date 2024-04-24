@@ -1,5 +1,5 @@
 // From implementation of Trie Dict made for the Yellow Exercise 2b
-module internal TrieDictionary
+module internal Dict
 
     type TrieDict
     

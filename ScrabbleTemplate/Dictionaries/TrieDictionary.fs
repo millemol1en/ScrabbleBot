@@ -1,5 +1,5 @@
 // From implementation of Trie Dict made for the Yellow Exercise 2b
-module internal TrieDictionary
+module internal Dict
     // The TrieDict is a discriminated union containing a tuple where:
     //      -> fst :: boolean value indicates whether or not it is a leaf
     //      -> snd :: Map holds a character value and all its subsequent connected nodes.

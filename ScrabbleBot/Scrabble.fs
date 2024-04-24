@@ -57,9 +57,8 @@ module State =
 
 module Scrabble =
     open System.Threading
-
+    
     let playGame cstream pieces (st : State.state) =
-
         let rec aux (st : State.state) =
             Print.printHand pieces (State.hand st)
 

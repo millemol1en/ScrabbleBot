@@ -62,19 +62,43 @@ module internal StateMonad
             if pos < 0 || pos >= s.word.Length then Failure (IndexOutOfBounds pos)
             else Success (snd s.word.[pos], s))  
 
-    let lookup (x : string) : SM<int> = 
+    let lookup (var : string) : SM<int> = 
         let rec aux =
             function
             | []      -> None
-            | m :: ms -> 
-                match Map.tryFind x m with
+            | m::ms -> 
+                match Map.tryFind var m with
                 | Some v -> Some v
                 | None   -> aux ms
 
         S (fun s -> 
               match aux (s.vars) with
               | Some v -> Success (v, s)
-              | None   -> Failure (VarNotFound x))
+              | None   -> Failure (VarNotFound var))
 
-    let declare (var : string) : SM<unit> = failwith "Not implemented"   
-    let update (var : string) (value : int) : SM<unit> = failwith "Not implemented"      
+    let declare (var : string) : SM<unit> =
+        S (fun s ->
+            match s.vars with
+            | [] -> Failure (IndexOutOfBounds 0)
+            | m::ms -> 
+                match m.TryFind(var) with
+                | Some _ -> Failure (VarExists var)
+                | None   -> if s.reserved.Contains var then Failure (ReservedName var)
+                            else Success((), {s with vars = Map.add var 0 m :: s.vars}))
+    let update (var : string) (value : int) : SM<unit> =
+        // We need to make it recursive as it
+        let rec updateHelper (sVars : Map<string, int> list) =
+            match sVars with
+            | [] -> None
+            | m::ms ->
+                match (m.TryFind(var)) with
+                | Some v -> Some (Map.add var value m :: ms)
+                | None ->
+                    match updateHelper ms with
+                    | None -> None
+                    | Some mss -> Some (m :: mss)
+                    
+        S (fun s ->
+            match updateHelper (s.vars) with
+            | None       -> Failure (VarNotFound var)
+            | Some state -> Success ((), {s with vars = state}))
