@@ -42,13 +42,28 @@ module State =
     // information, such as number of players, player turn, etc.
 
     type state = {
-        board         : Parser.board
-        dict          : ScrabbleUtil.Dictionary.Dict
-        playerNumber  : uint32
-        hand          : MultiSet.MultiSet<uint32>
+        board          : Parser.board
+        dict           : ScrabbleUtil.Dictionary.Dict
+        playerNumber   : uint32                          // Essentially Player ID
+        hand           : MultiSet.MultiSet<uint32>       // Current pieces on hand
+        // Newly Added:
+        numPlayers     : uint32                          // Total number of players in game
+        playerTurn     : uint32                          // Marks the current players turn
+        timeout        : uint32 option                   // Time taken
+        lettersOnBoard : Map<coord, (char * int)>        // The letters currently on the board
     }
 
-    let mkState b d pn h = {board = b; dict = d;  playerNumber = pn; hand = h }
+    let mkState (_board : Parser.board) (_dict : ScrabbleUtil.Dictionary.Dict) (_playerNum : uint32) (_hand : MultiSet.MultiSet<uint32>) (_numPlayers : uint32) (_playerTurn : uint32) (_timeout : uint32 option) (_lettersOnBoard : Map<coord, (char * int)>)  =
+        {
+            board = _board
+            dict = _dict
+            playerNumber = _playerNum  
+            hand = _hand
+            numPlayers = _numPlayers
+            playerTurn = _playerTurn 
+            timeout = _timeout
+            lettersOnBoard = _lettersOnBoard
+        }
 
     let board st         = st.board
     let dict st          = st.dict
@@ -90,7 +105,6 @@ module Scrabble =
             | RCM a -> failwith (sprintf "not implmented: %A" a)
             | RGPE err -> printfn "Gameplay Error:\n%A" err; aux st
 
-
         aux st
 
     let startGame 
@@ -101,7 +115,7 @@ module Scrabble =
             (playerTurn  : uint32) 
             (hand : (uint32 * uint32) list)
             (tiles : Map<uint32, tile>)
-            (timeout : uint32 option) 
+            (timeout : uint32 option)   
             (cstream : Stream) =
         debugPrint 
             (sprintf "Starting game!
@@ -117,5 +131,5 @@ module Scrabble =
                   
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
 
-        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet)
+        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet numPlayers playerTurn timeout Map.empty)
         

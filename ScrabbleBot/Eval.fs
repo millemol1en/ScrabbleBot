@@ -142,23 +142,21 @@ module internal Eval
     let stmntEval2 stm = failwith "Not implemented"
 
 (* Part 4 *) 
-
+    type coord = int * int
     type word = (char * int) list
     type squareFun = word -> int -> int -> Result<int, Error>
-
-    let stmntToSquareFun stm = failwith "Not implemented"
-
-
-    type coord = int * int
-
-    type boardFun = coord -> Result<squareFun option, Error> 
-
-    let stmntToBoardFun stm m = failwith "Not implemented"
+    type boardFun = coord -> Result<squareFun option, Error>
+    
+    // let stmntToSquareFun stm (w:word) (pos:int) (acc:int) =
+    //     let state = mkState [("_pos_", pos); ("_acc_", acc); ("_result_", 0)] w ["_pos_"; "_acc_"; "_result_"]
+    //     stmntEval stm >>>= lookup "_result_" |> evalSM state
+    //
+    // let stmntToBoardFun stm (map:Map<int, 'a>) (coord : coord) =
+    //     let state = mkState [("_x_", fst coord); ("_y_", snd coord); ("_result_", 0)] [] ["_x_"; "_y_"; "_result_"]
+    //     stmntEval stm >>>= lookup "_result_" >>= (fun a -> ret (map.TryFind a)) |> evalSM state
 
     type board = {
         center        : coord
         defaultSquare : squareFun
         squares       : boardFun
     }
-
-    let mkBoard c defaultSq boardStmnt ids = failwith "Not implemented"
