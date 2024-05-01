@@ -18,8 +18,8 @@ module internal Dict
                 match trieDict with
                 | TrieNode (b, m) ->
                     match m.TryFind(cHead) with
-                    | None   -> TrieNode (b, m.Add(cHead, (insertHelper cTail (empty ()))))  //| Case 1 :: We couldn't find a character in the Map, so 
-                    | Some x -> TrieNode (b, m.Add(cHead, (insertHelper cTail x)))          //| Case 2 :: We located a character representing this node 
+                    | None   -> TrieNode (b, m.Add(cHead, (insertHelper cTail (empty ()))))  //| Case 1 :: We couldn't find a character in the Map, so add it for new
+                    | Some x -> TrieNode (b, m.Add(cHead, (insertHelper cTail x)))           //| Case 2 :: We located a character representing this node 
         
         insertHelper [for c in s -> c] t
     
@@ -39,6 +39,10 @@ module internal Dict
                     
         queryHelper [for c in s -> c] t
 
+    // Returns a trie with all the words specified with a prefix
+    // The bool represents a the end of a word
+    // 
+    // Once you reach the end, keep using step if you have any words that be used. 
     let step (c : char) (t : TrieDict) : (bool * TrieDict) option  =
         match t with
         | TrieNode (_, m) ->

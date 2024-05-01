@@ -1,7 +1,10 @@
 ﻿namespace ScrabBoyz
 
+open ScrabbleBot
 open ScrabbleUtil
 open ScrabbleUtil.ServerCommunication
+open ScrabbleBot.MoveChooser
+open MoveChooser
 
 open System.IO
 
@@ -72,49 +75,104 @@ module State =
 
 module Scrabble =
     open System.Threading
+    open State 
+    //////////////////////////////////////////NEW FUNCTIONS//////////
     
-    let playGame cstream pieces (st : State.state) =
-        let rec aux (st : State.state) =
-            Print.printHand pieces (State.hand st)
+    let switchTurn (st : State.state) = if st.playerTurn = st.numPlayers then uint32 1 else (st.playerTurn + uint32 1)
 
-            // remove the force print when you move on from manual input (or when you have learnt the format)
-            forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
-            let input =  System.Console.ReadLine()
-            let move = RegEx.parseMove input
+    let updateMoveIntoState (moveList : list<coord * (uint32 * (char * int))>) (st : state) =
+        List.fold (fun stAcc move ->
+            let (coord, (_,(char, charPoints))) = move
+            debugPrint (sprintf "Inserting move %A %A\n" coord (char))
+            // We add 
+            let newPlayedLetters = stAcc.lettersOnBoard |> Map.add coord (char, charPoints)
+            mkState stAcc.board stAcc.dict stAcc.playerNumber stAcc.hand stAcc.numPlayers st.playerTurn stAcc.timeout newPlayedLetters
+        ) st moveList
+        
+    let updateHand moveList st newPieces =
+        // Get the indices of the tiles we've just played
+        let playedIndexes = 
+            moveList 
+            |> Seq.map (fun move -> 
+                let (_, (charuint, (_, _))) = move
+                charuint
+                ) 
+            |> Seq.toList 
+            |> MultiSet.ofList
 
-            debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-            send cstream (SMPlay move)
+        // Filter out the tiles we've just played:
+        let subtractedHand = MultiSet.subtract (hand st) playedIndexes
 
-            let msg = recv cstream
-            debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+        // Add new ones coming in from the server:
+        List.fold (fun acc (indexOfLetter, letterCount) -> 
+        MultiSet.add indexOfLetter letterCount acc) subtractedHand newPieces
+    ///////////
+        
+    let playGame cstream (pieces : Map<uint32, tile>) (st : state) =
+        let rec aux (st : state) (isMyTurn : bool) =
+            // TODO :: Start timeout here
+            
+            debugPrint(sprintf "CURRENT PLAYER: %d \n" (st.playerTurn))
+            debugPrint(sprintf "IS MY TURN? %b \n" isMyTurn)
+            debugPrint(sprintf "NUM PIECES ON BOARD %d \n" st.lettersOnBoard.Count)
+            
+            if isMyTurn then
+                debugPrint("\n=======================\n**** My Turn ****\n=======================\n")
+                Print.printHand pieces (State.hand st)
+                
+                let input =  System.Console.ReadLine()
+                let move  = RegEx.parseMove input
+                
+                // debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move)  //| keep the debug lines. They are useful.
+                
+                if move.Length = 0 then
+                    send cstream (SMPass)
+                else 
+                    send cstream (SMPlay move)                                              //| TODO :: This is used to send our move to the server (p. 19)
+                
+            else
+                debugPrint("\n=======================\n**** OPPONENT TURN ****\n=======================\n")
 
+            //////////// Perform MoveChooser //////////////
+            let msg = recv cstream                                                          //| TODO :: This is used to receive our opponents move from the server (p. 19)
+            
             match msg with
-            | RCM (CMPlaySuccess(ms, points, newPieces)) ->
+            | RCM (CMPlaySuccess(ms, points, newPieces)) ->                
+                let insertMovesIntoState = updateMoveIntoState ms st
+                let newHand = updateHand ms st newPieces
+            
+                let st' = mkState st.board st.dict st.playerNumber newHand st.numPlayers (switchTurn st) st.timeout insertMovesIntoState.lettersOnBoard
+                aux st' (st.playerNumber % st.numPlayers + 1u = st.playerNumber)    // TODO Package into function
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
-                let st' = st // This state needs to be updated
-                aux st'
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
-                let st' = st // This state needs to be updated
-                aux st'
+                
+                let insertMovesIntoState = updateMoveIntoState ms st
+                
+                let st' = mkState st.board st.dict st.playerNumber st.hand st.numPlayers (switchTurn st) st.timeout insertMovesIntoState.lettersOnBoard
+                aux st' (pid % st.numPlayers + 1u = st.playerNumber)
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
-                let st' = st // This state needs to be updated
-                aux st'
+                let st' = st
+                aux st' (st.playerNumber % st.numPlayers + 1u = st.playerNumber)
             | RCM (CMGameOver _) -> ()
             | RCM a -> failwith (sprintf "not implmented: %A" a)
-            | RGPE err -> printfn "Gameplay Error:\n%A" err; aux st
+            | RGPE err -> printfn "Gameplay Error:\n%A" err; aux st false
 
-        aux st
+        // Kickoff
+        if (st.playerTurn = st.playerNumber) then
+            aux st true  
+        else
+            aux st false 
 
     let startGame 
             (boardP : boardProg) 
-            (dictf : bool -> Dictionary.Dict) 
-            (numPlayers : uint32) 
-            (playerNumber : uint32) 
-            (playerTurn  : uint32) 
-            (hand : (uint32 * uint32) list)
-            (tiles : Map<uint32, tile>)
+            (dictf : bool -> Dictionary.Dict)           
+            (numPlayers : uint32)                       //| Number of players present
+            (playerNumber : uint32)                     //| Player ID
+            (playerTurn  : uint32)                      //| Who's turn is it anyways?
+            (hand : (uint32 * uint32) list)             //| Starting hand
+            (tiles : Map<uint32, tile>)                 //| Tile lookup table
             (timeout : uint32 option)   
             (cstream : Stream) =
         debugPrint 

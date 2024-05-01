@@ -13,7 +13,7 @@ module internal MultiSet
 
     let contains (a : 'a) (R mySet) : bool =
         Map.containsKey a mySet
-
+        
     let numItems (a : 'a) (R mySet : MultiSet<'a>) =
         match Map.tryFind a mySet with
         | None -> (uint32 0)
@@ -45,8 +45,8 @@ module internal MultiSet
     let foldBack (f : 'a -> uint32 -> 'b -> 'b) (R mySet : MultiSet<'a>) (x : 'b) =
         Map.foldBack f mySet x
 
-    let ofList (_ : 'a list) : MultiSet<'a> = failwith "not done"
-    let toList (_ : MultiSet<'a>) : 'a list = []
+    let ofList (lst : 'a list) : MultiSet<'a> = List.fold (fun acc elem -> addSingle elem acc) empty lst
+    let toList s = foldBack (fun elem num acc -> List.init (int32 num) (fun _ -> elem) @ acc) s []
 
 
     let map (_ : 'a -> 'b) (_ : MultiSet<'a>) : MultiSet<'b> = failwith "not done"

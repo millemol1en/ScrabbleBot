@@ -86,7 +86,6 @@ module internal StateMonad
                 | None   -> if s.reserved.Contains var then Failure (ReservedName var)
                             else Success((), {s with vars = Map.add var 0 m :: s.vars}))
     let update (var : string) (value : int) : SM<unit> =
-        // We need to make it recursive as it
         let rec updateHelper (sVars : Map<string, int> list) =
             match sVars with
             | [] -> None
