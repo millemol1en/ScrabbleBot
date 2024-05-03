@@ -143,14 +143,18 @@ module PlayMaker
     
     // 10. In this method, we ...
     //     The result is a word in the form of List<coord * uint32 * (char * int)>
-    let gatherWordsOnBoard (st : state) (c : coord) (dir : Direction) =
-        Map.fold (fun (accWordList : List<coord * uint32 * char * int> list) (coordinate : coord) (character : char) ->
-                  match (traverseToLocateWords st c dir) with
-                  | Some word ->            
-                      
-                  
-                  )
+    let gatherWordsOnBoard (st : state) (dir : Direction) =
+        Map.fold (
+            fun (accWordList : List<coord * uint32 * char * int> list) (coordinate : coord) ((character : char), _) ->
+                match (traverseToLocateWords st coordinate dir) with
+                | Some wordAsListOfChar ->          
+                  wordAsListOfChar :: accWordList
+                | None ->
+                  accWordList
+            ) [] st.lettersOnBoard
     
-    let gatherAllPlayableWords = failwith "fuck"
-        // let checkUp   = (stepDir Up c)   |> doesTileExistAndHavePiece st
-        // let checkLeft = (stepDir Left c) |> doesTileExistAndHavePiece st
+    let gatherAllPlayableWords (st : state) =
+        let wordsGoingUpToDown    = gatherWordsOnBoard st Direction.Up
+        let wordsGoingLeftToRight = gatherWordsOnBoard st Direction.Left
+        
+        wordsGoingUpToDown @ wordsGoingLeftToRight
