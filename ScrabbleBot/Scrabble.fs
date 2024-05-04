@@ -81,17 +81,29 @@ module Scrabble =
             let move = RegEx.parseMove input
 
             if (isBoardEmpty st) then
-                forcePrint ("The board is empty") 
+                forcePrint ("The board is empty\n") 
             else 
-                forcePrint (sprintf "The board currently has %i many pieces" st.piecesOnBoard.Count) 
+                forcePrint (sprintf "The board currently has %i many pieces\n" st.piecesOnBoard.Count) 
 
-            let allWordsOnTheBoard = PlayMaker.gatherAllPlayableWords st
+            let allWordsOnTheBoard = (PlayMaker.gatherPotentialWords st)
+            
+            // TODO :: Move this OUT!!!
+            // Also! The gatherPotentialWords needs to return the type (string * (coord * uint32 * char * int)) list
+            
+                    
+                    
             
             forcePrint (sprintf "All words on the board: %A" allWordsOnTheBoard)
             
             //debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-            send cstream (SMPlay move)
+            if move.IsEmpty then
+                send cstream (SMPass)
+            else
+                send cstream (SMPlay move)
 
+            // SMChange
+            
+            
             let msg = recv cstream
             //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
 
@@ -122,6 +134,14 @@ module Scrabble =
                 aux st'
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
+                let st' = st // This state needs to be updated
+                aux st'
+            | RCM (CMPassed (pid)) ->
+                (* Passed *)
+                let st' = st // This state needs to be updated
+                aux st'
+            | RCM (CMChangeSuccess (ms)) ->
+                (* Successfully swapped pieces *)
                 let st' = st // This state needs to be updated
                 aux st'
             | RCM (CMGameOver _) -> ()
