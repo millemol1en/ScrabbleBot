@@ -1,5 +1,6 @@
 ﻿namespace ScrabBoyz
 
+open PlayMaker
 open ScrabbleUtil
 open ScrabbleUtil.ServerCommunication
 
@@ -81,19 +82,55 @@ module Scrabble =
             let move = RegEx.parseMove input
 
             if (isBoardEmpty st) then
-                forcePrint ("The board is empty\n") 
+                forcePrint ("The board is empty\n")
+                
+                // let longestWordWithCleanBoard = 
+                    
+                forcePrint ("The board is empty\n" )
+                
             else 
                 forcePrint (sprintf "The board currently has %i many pieces\n" st.piecesOnBoard.Count) 
 
             let allWordsOnTheBoard = (PlayMaker.gatherPotentialWords st)
             
-            // TODO :: Move this OUT!!!
-            // Also! The gatherPotentialWords needs to return the type (string * (coord * uint32 * char * int)) list
+            // let locatedWordUsingDictStep = (PlayMaker.locateWordUsingDictStep)
             
+            // TODO :: Move this!!!
+            let listOfLongestWords : (string * (coord * Direction)) list =                
+                let rec wordsBotMightPlayHelper (locatedWordsOnBoard : (string * (coord * Direction)) list) (acc : (string * (coord * Direction)) list) =
+                    match locatedWordsOnBoard with
+                    | [] -> acc
+                    | x::xs ->
+                        let s = (fst x)
+                        let (c, d) = (snd x)
+                        let locatedWord = locateWordUsingDictStep st s c d 
+                        
+                        let accumulatedRes = if locatedWord.Length = 0 then (locatedWord, (c, d)) :: acc else acc
+                            
+                        wordsBotMightPlayHelper xs accumulatedRes 
                     
-                    
+                wordsBotMightPlayHelper allWordsOnTheBoard []
             
-            forcePrint (sprintf "All words on the board: %A" allWordsOnTheBoard)
+            // TODO :: Move this!!!
+            let mightestWordBotCanPlay =
+                List.fold (fun (longestPackage : (string * (coord * Direction))) (currPackage : (string * (coord * Direction))) ->
+                    
+                    let longestString = (fst longestPackage)
+                    let currString    = (fst currPackage)
+                    
+                    if currString.Length > longestString.Length then
+                        currPackage
+                    else
+                        longestPackage
+                    
+                    ) ("", ((0,0), Left)) listOfLongestWords
+            
+             
+            let longestStringMove = parseBotMove st mightestWordBotCanPlay
+            
+            forcePrint (sprintf "Mightest word we can play: %A\n\n" longestStringMove)
+            
+            forcePrint (sprintf "All words on the board: %A\n\n" allWordsOnTheBoard)
             
             //debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             if move.IsEmpty then

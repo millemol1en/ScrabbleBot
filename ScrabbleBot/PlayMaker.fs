@@ -35,6 +35,7 @@ module internal PlayMaker
         | Left
         | Right
         
+    type wordPackage = (string * (coord * Direction))
         
     let getOppDirection (dir : Direction) =
         match dir with
@@ -58,6 +59,11 @@ module internal PlayMaker
     // https://www.fssnip.net/by/title/Building-Strings
     let (++) (s : StringBuilder) (c : char) : StringBuilder =
         s.Append c
+        
+    let (.++.) (s : StringBuilder) (c : string) : StringBuilder =
+        s.Append c
+        
+    let completeString (s : StringBuilder) : string = s.ToString()
         
     // 03. 
     let stepDir (dir : Direction) ((x, y) : coord) : coord =
@@ -103,15 +109,14 @@ module internal PlayMaker
     
     // 06. Here we are collecting the words
     //
-    
-    let locateLongestWord (st : GameState.state) (initCoord : coord) (initDir : Direction) =
+    // 
+    let locateLongestWordInADirection (st : GameState.state) (initWord : string) (initDict : Dict) (initCoord : coord) (initDir : Direction) =
         let rec locateLongestWordHelper (wordAcc : string) (hand : MultiSet<uint32>) (dict : Dict) (piecesOnBoard : Map<coord, (char * int)>) (coordinate : coord) (dir : Direction) = 
             
             let startingPoint =
                 match (piecesOnBoard.TryFind coordinate) with
                 | Some (c, i) -> MultiSet.toList (MultiSet.addSingle (c) MultiSet.empty)
                 | None        -> MultiSet.toList (multisetToChar hand)
-                
                 
             List.fold (fun (currLongestWord : string) (character : char) ->
                 
@@ -139,51 +144,55 @@ module internal PlayMaker
                 | None  -> currLongestWord
                 ) "" startingPoint
             
-        locateLongestWordHelper "" st.hand st.dict st.piecesOnBoard initCoord initDir
+        locateLongestWordHelper initWord st.hand initDict st.piecesOnBoard initCoord initDir
     
-    // 07. Here we are utilizing the fact that the depth of a Trie node represents the length of a word
+    // 07. "..."
+    //     Here we are utilizing the fact that the depth of a Trie node represents the length of a word
     //     After having accumulated a dict, we then use it to search it in conjunction with the current
     //     pieces on the board, to determine what we can write.
-    // let locateWordUsingDictStep (startCoord : coord) (dir : Direction) (piecesInHand : string) (hand : MultiSet<uint32>) (dict : Dict) (piecesOnBoard : Map<coord, (char * int)>) =
-    //     let (wordLength, currDict) =
-    //         List.fold (fun ((trieDepth : int), (d : Dict)) c ->
-    //                 let stepNode = step c dict
-    //                 
-    //                 match stepNode with
-    //                 | Some (_, trieNode) ->
-    //                     (trieDepth + 1, trieNode)
-    //                 | None ->
-    //                     (trieDepth, d)
-    //             
-    //             ) (0, dict) ([for c in piecesInHand do c])
-    //         
-    //     // 
-    //     let tailCoord = calcCoordUsingLength wordLength startCoord dir
-         
+    
+    let locateWordUsingDictStep (st : state) (wordAcc : string) (startCoord : coord) (direction : Direction) : string =
+        let (wordLength, currDict) =
+            List.fold (fun ((trieDepth : int), (d : Dict)) c ->
+                    let stepNode = step c st.dict
+                    
+                    match stepNode with
+                    | Some (_, trieNode) ->
+                        (trieDepth + 1, trieNode)
+                    | None ->
+                        (trieDepth, d)
+                
+                ) (0, st.dict) ([for c in wordAcc do c])
+            
+        locateLongestWordInADirection st wordAcc currDict (calcCoordUsingLength wordLength startCoord direction) direction
+        
+    // let locateLongestWordOnFirstTurn (st : state) =
+    //     
+        
         
     // Here we follow the the pattern below:
     //      # 1 ::
     //      # 2 ::
     
-    let traverseToLocateWords (st : state) (initCoord : coord) (initDir : Direction) : string =
+    let traverseToLocateWords (st : state) (initCoord : coord) (initDir : Direction) : string option =
         let rec traverseInDirection (piecesOnBoard : Map<coord, (char * int)>) (currCoord : coord) (currDir : Direction) (accWord : StringBuilder) =
             let stepCoordinate = stepDir currDir currCoord 
             
             match (piecesOnBoard.TryFind stepCoordinate) with
-            | Some (c, pVal) ->
+            | Some (c, _) ->
                 traverseInDirection piecesOnBoard stepCoordinate currDir (accWord ++ c)
             | None ->
-                accWord.ToString()
+                (completeString accWord)
         
         
         match ((stepDir initDir initCoord) |> getAdjacentPiece st) with
-        | Some _ -> ""        // Case #1 :: Nothing, so in our Map.fold, we keep going
+        | Some _ -> None        // Case #1 :: Nothing, so in our Map.fold, we keep going
         | None   ->           // Case #2 :: Something! So we now reverse and go forwards to locate the entire word
             let (cVal, _) = Map.find initCoord st.piecesOnBoard
             
             let oppDirection = getOppDirection initDir
             
-            traverseInDirection st.piecesOnBoard initCoord oppDirection (StringBuilder() ++ cVal)
+            Some (traverseInDirection st.piecesOnBoard initCoord oppDirection (StringBuilder() ++ cVal))
             
     
     // 10. In this method, we ...
@@ -195,15 +204,11 @@ module internal PlayMaker
     let gatherWordsOnBoard (st : state) (direction : Direction) =
         Map.fold (
             fun (accWordList : (string * (coord * Direction)) list) (coordinate : coord) ((character : char), _) ->
-                
-                let locatedWord = traverseToLocateWords st coordinate direction
-                
-                match locatedWord with
-                | s when s.Length > 0 ->
+                match (traverseToLocateWords st coordinate direction) with
+                | Some locatedWord ->
                     (locatedWord, (coordinate, direction)) :: accWordList
-                | s when s.Length = 0 ->
+                | None ->
                     accWordList
-                | _ -> failwith "This should not be possible"
                 
             ) [] st.piecesOnBoard
     
@@ -212,20 +217,44 @@ module internal PlayMaker
     //         Currently adding 1 too many letters
     //         And it is goofy as hell
     let gatherPotentialWords (st : state) =
-        let wordsGoingUpToDown    = gatherWordsOnBoard st Direction.Up
-        let wordsGoingLeftToRight = gatherWordsOnBoard st Direction.Left
         
-        forcePrint(sprintf "\n\n====================\n  wordsGoingUpToDown    :: %A\n  wordsGoingLeftToRight :: %A \n====================\n\n" wordsGoingUpToDown wordsGoingLeftToRight)
+        // TODO :: This works like ass and needs fixing...
+        let wordsGoingUpToDown    = gatherWordsOnBoard st Direction.Up
+        let wordsGoingLeftToRight = gatherWordsOnBoard st Direction.Right
+        
+        // forcePrint(sprintf "\n\n====================\n  wordsGoingUpToDown    :: %A\n  wordsGoingLeftToRight :: %A \n====================\n\n" wordsGoingUpToDown wordsGoingLeftToRight)
         
         wordsGoingUpToDown @ wordsGoingLeftToRight
         
-    // let playableWordsList (st : state) =
-    //     let rec aux (wob : (string * (coord * uint32 * char * Direction)) list) (acc : (string * (coord * uint32 * char * Direction)) list) =
-    //         match wob with
-    //         | []     -> acc
-    //         | (s, (coord, u, character, dir))::xs ->
-    //             
-    //             let locatedWord = PlayMaker.locateLongestWord st coord dir
+        
+    // getLongestWord
+    
+       
+    // 12. We finally get to the portion of the program where we parse a move into
+    //     
+    //
+    //     The direction in which we move is specified by the 3*tuple value 'Direction'
+    let parseBotMove (st : state) ((s, (c, d)) : string * (coord * Direction)) : ((int * int) * (uint32 * (char * int))) list =
+        let rec parseBotMoveHelper (commandAcc : ((int * int) * (uint32 * (char * int))) list) (cList : char list) (coordinate : coord) (direction : Direction) =
+            match cList with
+            | []    -> commandAcc
+            | x::xs -> 
+                // 0 0 1A1 0 1 ...etc...
+                let charID         = charToMultiSetID x
+                let charValue      = charPointValues x
+                let (xCoor, yCoor) = coordinate
+                let newCoord       = stepDir direction coordinate
+                let command        = ((xCoor, yCoor), (charID, (x, charValue)))
+                
+                match (doesTileHavePiece st newCoord) with
+                | true ->   // Tile is already on the board, so don't add it. 
+                    parseBotMoveHelper commandAcc xs newCoord direction
+                | false ->  // Tile is NOT already on the board, so do add it.
+                    parseBotMoveHelper (command :: commandAcc) xs newCoord direction
+                
+        parseBotMoveHelper [] ([for c' in s do c']) c d
+                
+                
                 
                 
                     
