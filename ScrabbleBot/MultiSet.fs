@@ -45,15 +45,11 @@ module internal MultiSet
     let foldBack (f : 'a -> uint32 -> 'b -> 'b) (R mySet : MultiSet<'a>) (x : 'b) =
         Map.foldBack f mySet x
 
-    let ofList (_ : 'a list) : MultiSet<'a> = failwith "not done"
-    let toList (_ : MultiSet<'a>) : 'a list = []
-
-
-    let map (_ : 'a -> 'b) (_ : MultiSet<'a>) : MultiSet<'b> = failwith "not done"
-
+    let ofList (lst : 'a list) : MultiSet<'a> = List.fold (fun acc elem -> addSingle elem acc) empty lst
+    let toList s = foldBack (fun elem num acc -> List.init (int32 num) (fun _ -> elem) @ acc) s []
+    let map (f : 'a -> 'b) (ms : MultiSet<'a>) : MultiSet<'b> =
+        fold (fun accMap key value -> add (f key) value accMap) empty ms
     let union (_ : MultiSet<'a>) (_ : MultiSet<'a>) : MultiSet<'a> = failwith "not done"
-    let sum (_ : MultiSet<'a>) (_ : MultiSet<'a>) : MultiSet<'a> = failwith "not done"
-    
-    let subtract (_ : MultiSet<'a>) (_ : MultiSet<'a>) : MultiSet<'a> = failwith "not done"
-    
+    let sum (ms1 : MultiSet<'a>) (ms2 : MultiSet<'a>) : MultiSet<'a> = foldBack add ms1 ms2
+    let subtract (ms1 : MultiSet<'a>) (ms2 : MultiSet<'a>) : MultiSet<'a> = foldBack remove ms1 ms2 
     let intersection (_ : MultiSet<'a>) (_ : MultiSet<'a>) : MultiSet<'a> = failwith "not done"
