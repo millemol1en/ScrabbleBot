@@ -17,6 +17,7 @@ module RegEx =
         if m.Success then Some(List.tail [ for g in m.Groups -> g.Value ])
         else None
 
+    
     let parseMove ts =
         let pattern = @"([-]?[0-9]+[ ])([-]?[0-9]+[ ])([0-9]+)([A-Z]{1})([0-9]+)[ ]?" 
         Regex.Matches(ts, pattern) |>
