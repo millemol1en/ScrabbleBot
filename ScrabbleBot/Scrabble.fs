@@ -2,6 +2,7 @@
 
 open ScrabbleUtil
 open ScrabbleUtil.ServerCommunication
+open GameState
 
 open System.IO
 
@@ -37,59 +38,88 @@ module RegEx =
         MultiSet.fold (fun _ x i -> forcePrint (sprintf "%d -> (%A, %d)\n" x (Map.find x pieces) i)) ()
 
 module State = 
-    // Make sure to keep your state localised in this module. It makes your life a whole lot easier.
-    // Currently, it only keeps track of your hand, your player numer, your board, and your dictionary,
-    // but it could, potentially, keep track of other useful
-    // information, such as number of players, player turn, etc.
-
-    type state = {
-        board         : Parser.board
-        dict          : ScrabbleUtil.Dictionary.Dict
-        playerNumber  : uint32
-        hand          : MultiSet.MultiSet<uint32>
-        
+    let mkState b d pn h pob = {
+        GameState.board = b
+        GameState.dict = d
+        GameState.playerNumber = pn
+        GameState.hand = h
+        GameState.piecesOnBoard = pob;
     }
-
-    let mkState b d pn h = {board = b; dict = d;  playerNumber = pn; hand = h }
-
+    
     let insertMovesIntoState (ms : (coord * (uint32 * (char * int))) list) (pob : Map<coord, (char * int)>) =
         let rec aux (moves : (coord * (uint32 * (char * int))) list) (acc : Map<coord, (char * int)>) =
             match moves with
             | [] -> acc
             | (coor, (_, (cVal, pVal)))::xs ->
                 aux xs (acc |> Map.add coor (cVal, pVal))
-                
-        aux ms pob 
+    
+        aux ms pob
+        
+        
+    
 
 module Scrabble =
     open System.Threading
+    open State
     
-    let playGame cstream pieces (st : State.state) =
-        let rec aux (st : State.state) =
+    let playGame cstream pieces (st : state) =
+        let rec aux (st : state) =
             Print.printHand pieces (st.hand )
 
-            // remove the force print when you move on from manual input (or when you have learnt the format)
-            forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
+            //////////////////////////////////// BOT PLAY ////////////////////////////////////
+            
+            
+            
+            
+            
+            //////////////////////////////////////////////////////////////////////////////////
+            
+            //////////////////////////////////// REMOVE THIS /////////////////////////////////
+            
             let input =  System.Console.ReadLine()
             let move = RegEx.parseMove input
 
-            debugPrint (sprintf "Player %d -> Server:\n%A\n" (st.playerNumber) move) // keep the debug lines. They are useful.
+            // debugPrint (sprintf "Player %d -> Server:\n%A\n" (st.playerNumber) move) // keep the debug lines. They are useful.
             send cstream (SMPlay move)
 
             let msg = recv cstream
-            debugPrint (sprintf "Player %d <- Server:\n%A\n" (st.playerNumber) move) // keep the debug lines. They are useful.
+            // debugPrint (sprintf "Player %d <- Server:\n%A\n" (st.playerNumber) move) // keep the debug lines. They are useful.
 
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
-                let st' = st // This state needs to be updated
+                
+                // 01. Update our hand
+                let updatedHand : MultiSet.MultiSet<uint32> =
+                    ms
+                    |> List.map (fun ((_, _), (id, (_, _))) -> id) // Extract played piece IDs
+                    |> List.fold (fun acc x -> MultiSet.removeSingle x acc) st.hand // Remove played pieces from hand
+                    |> fun hand -> List.fold (fun acc (x, _) -> MultiSet.add x 1u acc) hand newPieces
+                                
+                // 02. Update the board
+                let updatedBoard = insertMovesIntoState ms st.piecesOnBoard
+                
+                let st' = mkState st.board st.dict st.playerNumber updatedHand updatedBoard
                 aux st'
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
-                let st' = st // This state needs to be updated
+                
+                let updatedBoard = insertMovesIntoState ms st.piecesOnBoard
+                
+                forcePrint(sprintf "\n!Opponent played and the board looks as follows %A !\n" updatedBoard)
+                
+                let st' = mkState st.board st.dict st.playerNumber st.hand updatedBoard
                 aux st'
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
+                let st' = st // This state needs to be updated
+                aux st'
+            | RCM (CMPassed (pid)) ->
+                (* Passed *)
+                let st' = st // This state needs to be updated
+                aux st'
+            | RCM (CMChangeSuccess (ms)) ->
+                (* Successfully swapped pieces *)
                 let st' = st // This state needs to be updated
                 aux st'
             | RCM (CMGameOver _) -> ()
@@ -123,5 +153,5 @@ module Scrabble =
                   
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
 
-        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet)
+        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet Map.empty)
         

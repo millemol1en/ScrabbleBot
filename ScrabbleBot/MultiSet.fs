@@ -53,3 +53,4 @@ module internal MultiSet
     let sum (ms1 : MultiSet<'a>) (ms2 : MultiSet<'a>) : MultiSet<'a> = foldBack add ms1 ms2
     let subtract (ms1 : MultiSet<'a>) (ms2 : MultiSet<'a>) : MultiSet<'a> = foldBack remove ms1 ms2 
     let intersection (_ : MultiSet<'a>) (_ : MultiSet<'a>) : MultiSet<'a> = failwith "not done"
+    
