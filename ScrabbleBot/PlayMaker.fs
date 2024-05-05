@@ -29,6 +29,7 @@ module internal PlayMaker
     type Direction =
     | Horizontal
     | Vertical
+    | Center
     
     type AddOrSub =
     | Add
@@ -36,8 +37,9 @@ module internal PlayMaker
 
     let dirToCoord (dir : Direction) =
         match dir with
-        | Horizontal -> (1,  0)
-        | Vertical   -> (0,  1)
+        | Horizontal -> (1, 0)
+        | Vertical   -> (0, 1)
+        | Center     -> (0, 0)
         
     let assimilateCoords ((x1, y1) : Coordinate) ((x2, y2) : Coordinate) (isAdd : AddOrSub) : Coordinate =
         match isAdd with
@@ -193,8 +195,47 @@ module internal PlayMaker
                 
         wordsGoingUpToDown @ wordsGoingLeftToRight
         
+    // 16. 
+    let collectAllTheWordsWeCanPlay (st : state) : (string * (coord * Direction)) list =                
+        let rec wordsBotMightPlayHelper (locatedWordsOnBoard : (string * (coord * Direction)) list) (acc : (string * (coord * Direction)) list) =
+            match locatedWordsOnBoard with
+            | [] -> acc
+            | x::xs ->
+                let s = (fst x)
+                let (c, d) = (snd x)
+                let locatedWord = constructDictTrie st s c d 
+                
+                let accumulatedRes = if locatedWord.Length = 0 then (locatedWord, (c, d)) :: acc else acc
+                    
+                wordsBotMightPlayHelper xs accumulatedRes 
+            
+        wordsBotMightPlayHelper (gatherPotentialWords st) []
         
-    // 16 
+    // 17. 
+    // TODO :: Condense to a boolean tuple type
+    let getLongestWord (st : state) =
+        let rec getLongestWordHelper (acc : (string * (coord * Direction))) (listOfPlayableWords : (string * (coord * Direction)) list) =
+            match listOfPlayableWords with
+            | []    -> acc
+            | x::xs ->
+                let (currS, (_, _)) = x
+                let (accS, (_, _)) = acc
+                
+                let acc' = if String.length currS > String.length accS then x else acc
+                getLongestWordHelper acc' xs
+        
+        getLongestWordHelper ("", ((0,0), Center)) (collectAllTheWordsWeCanPlay st)
+        
+    let longestWordWeCanPlay (st : state) : string * (coord * (Direction)) =
+        List.fold (fun (acc:string * (coord * (Direction))) (word:string * (coord * (Direction))) ->
+            if ((fst word).Length) > ((fst acc).Length) then
+                word
+            else
+                acc
+        ) ("",((0,0),Center)) (collectAllTheWordsWeCanPlay st)       
+    
+    
+    // 18
     let parseBotMove (st : state) ((s, (c, d)) : string * (coord * Direction)) : ((int * int) * (uint32 * (char * int))) list =
         let rec parseBotMoveHelper (commandAcc : ((int * int) * (uint32 * (char * int))) list) (piecePos : int) (cList : char list) (coordinate : coord) (direction : Direction) =
             match cList with

@@ -3,6 +3,7 @@
 open ScrabbleUtil
 open ScrabbleUtil.ServerCommunication
 open GameState
+open PlayMaker
 
 open System.IO
 
@@ -55,9 +56,6 @@ module State =
     
         aux ms pob
         
-        
-    
-
 module Scrabble =
     open System.Threading
     open State
@@ -67,10 +65,10 @@ module Scrabble =
             Print.printHand pieces (st.hand )
 
             //////////////////////////////////// BOT PLAY ////////////////////////////////////
+           
+            let longestWord = longestWordWeCanPlay st 
             
-            
-            
-            
+            forcePrint (sprintf "\n================\nLongest word :: %s\n================\n" (fst longestWord))
             
             //////////////////////////////////////////////////////////////////////////////////
             
