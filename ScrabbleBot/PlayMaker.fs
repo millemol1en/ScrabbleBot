@@ -96,9 +96,8 @@ module internal PlayMaker
         
         
     // 10. ...
-    let wordExists (dict : Dict) (lst : (coord * char * int) list) =
-        let word = List.map (fun (_, c, _) -> c) lst |> List.toArray |> System.String
-        ScrabbleUtil.Dictionary.lookup word dict
+    let isWord (st : state) (word : string) =
+        ScrabbleUtil.Dictionary.lookup word st.dict
         
     // 11. Get the longest word in a specified direction
     let locateLongestWordInADirection (st : GameState.state) (initWord : string) (initDict : Dict) (initCoord : coord) (initDir : Direction) =
@@ -208,7 +207,10 @@ module internal PlayMaker
                 let (c, d) = (snd x)
                 let locatedWord = constructDictTrie st s c d 
                 
-                let accumulatedRes = if locatedWord.Length > 0 then (locatedWord, (c, d)) :: acc else acc
+                let accumulatedRes =
+                    if locatedWord.Length > 0 && (isWord st locatedWord) then
+                        (locatedWord, (c, d)) :: acc
+                    else acc
                                         
                 wordsBotMightPlayHelper xs accumulatedRes 
             
@@ -230,23 +232,17 @@ module internal PlayMaker
                 getLongestWordHelper acc' xs
         
         getLongestWordHelper ("", ((0,0), Center)) (collectAllTheWordsWeCanPlay st)
-        
-    
-    let longestWordWeCanPlay (st : state) : string * (coord * (Direction)) =
-        List.fold (fun (acc:string * (coord * (Direction))) (word:string * (coord * (Direction))) ->
-            if ((fst word).Length) > ((fst acc).Length) then
-                word
-            else
-                acc
-        ) ("",((0,0),Center)) (collectAllTheWordsWeCanPlay st)       
+           
     
     
-    // 18. Our play on the first turn.
-    //     We simply 
+    // 18. Our play is on the first turn.
+    //     In this case, the board is clean and a play must be made in the center of the board.
+    //     The safest and easiest play is just to simply go along the horizontal axis and place
+    //     the words starting from the center. 
     let longestWordWeCanPlayOnTurnOne (st : state) =
         locateLongestWordInADirection st "" st.dict (dirToCoord Center) Horizontal
     
-    // 19
+    // 19 
     let parseBotMove (st : state) ((s, (c, d)) : string * (coord * Direction)) : ((int * int) * (uint32 * (char * int))) list =
         let rec parseBotMoveHelper (commandAcc : ((int * int) * (uint32 * (char * int))) list) (piecePos : int) (cList : char list) (coordinate : coord) (direction : Direction) =
             match cList with
@@ -266,3 +262,7 @@ module internal PlayMaker
                     parseBotMoveHelper (command :: commandAcc) (piecePos + 1) xs (newXCoor, newYCoor) direction
                 
         parseBotMoveHelper [] 0 ([for c' in s do c']) c d
+        
+        
+    let printParseMove (parsedMove : ((int * int) * (uint32 * (char * int))) list) =
+        parsedMove |> List.iter (printf "Command :: %A\n")
