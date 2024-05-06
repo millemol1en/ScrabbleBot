@@ -45,6 +45,9 @@ module internal PlayMaker
         match isAdd with
         | Add  -> x2 + x1, y2 + y1
         | Sub -> x2 - x1, y2 - y1
+        
+    let isBoardEmpty (st : state) =
+        (st.piecesOnBoard.Count = 0)
     
     // 03. Simply a "syntactical-sugar" operator for building strings - gotten from here:
     // https://www.fssnip.net/by/title/Building-Strings
@@ -213,6 +216,7 @@ module internal PlayMaker
         
     // 17. 
     // TODO :: Condense to a boolean tuple type
+    // TODO :: Test these 2 variants - one using recursion the other using List.fold
     let getLongestWord (st : state) =
         let rec getLongestWordHelper (acc : (string * (coord * Direction))) (listOfPlayableWords : (string * (coord * Direction)) list) =
             match listOfPlayableWords with
@@ -226,6 +230,7 @@ module internal PlayMaker
         
         getLongestWordHelper ("", ((0,0), Center)) (collectAllTheWordsWeCanPlay st)
         
+    
     let longestWordWeCanPlay (st : state) : string * (coord * (Direction)) =
         List.fold (fun (acc:string * (coord * (Direction))) (word:string * (coord * (Direction))) ->
             if ((fst word).Length) > ((fst acc).Length) then
@@ -235,7 +240,12 @@ module internal PlayMaker
         ) ("",((0,0),Center)) (collectAllTheWordsWeCanPlay st)       
     
     
-    // 18
+    // 18. Our play on the first turn.
+    //     We simply 
+    let longestWordWeCanPlayOnTurnOne (st : state) =
+        locateLongestWordInADirection st "" st.dict (dirToCoord Center) Horizontal
+    
+    // 19
     let parseBotMove (st : state) ((s, (c, d)) : string * (coord * Direction)) : ((int * int) * (uint32 * (char * int))) list =
         let rec parseBotMoveHelper (commandAcc : ((int * int) * (uint32 * (char * int))) list) (piecePos : int) (cList : char list) (coordinate : coord) (direction : Direction) =
             match cList with

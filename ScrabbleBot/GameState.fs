@@ -8,8 +8,8 @@ module internal GameState
         playerNumber  : uint32                          
         hand          : MultiSet.MultiSet<uint32>       
         piecesOnBoard : Map<coord, (char * int)>
-        // numPlayers    : uint32                          
-        // playerTurn    : uint32                          
+        turnCounter   : uint32
+        numPlayers    : uint32                          
         // timeout       : uint32 option  
     }
 
