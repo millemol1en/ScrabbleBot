@@ -102,8 +102,6 @@ module Scrabble =
             match msg with
             | RCM(CMPlaySuccess(ms, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
-                // let oldTiles = List.map (fun (_, (y, _)) -> (y, uint32 1)) ms
-
                 let updatedHand =
                     ms
                     |> List.map (fun ((_, _), (id, (_, _))) -> id) // Extract played piece IDs
@@ -115,7 +113,6 @@ module Scrabble =
                     { st with
                         turnCounter = changeTurn st st.numPlayers
                         hand = updatedHand }
-
 
                 aux st'
             | RCM(CMPlayed(pid, ms, points)) ->
