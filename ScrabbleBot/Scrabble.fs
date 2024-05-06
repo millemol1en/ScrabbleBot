@@ -115,6 +115,16 @@ module Scrabble =
                         hand = updatedHand }
 
                 aux st'
+            | RCM(CMChangeSuccess(newPieces)) ->
+                let newHand =
+                    List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty newPieces
+
+                let st' =
+                    { st with
+                        turnCounter = changeTurn st st.numPlayers
+                        hand = newHand }
+
+                aux st'
             | RCM(CMPlayed(pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
                 let st' =
