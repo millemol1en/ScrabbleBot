@@ -89,9 +89,9 @@ module Scrabble =
                 
                 
             else
-                let longestWord = longestWordWeCanPlay st
+                let longestWord = collectAllTheWordsWeCanPlay st
             
-                forcePrint (sprintf "\n================\nLongest word continued :: %s\n================\n" (fst longestWord))
+                forcePrint (sprintf "\n================\nCollection of all words we can play :: %A\n================\n" (longestWord))
             //////////////////////////////////////////////////////////////////////////////////
             
             //////////////////////////////////// REMOVE THIS /////////////////////////////////

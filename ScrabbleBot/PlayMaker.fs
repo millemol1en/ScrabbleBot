@@ -2,6 +2,7 @@ module internal PlayMaker
 
     open GameState
     open StateMonad
+    open ScrabbleUtil.DebugPrint
     open ScrabbleUtil
     open ScrabbleUtil.Dictionary
     open MultiSet
@@ -44,7 +45,7 @@ module internal PlayMaker
     let assimilateCoords ((x1, y1) : Coordinate) ((x2, y2) : Coordinate) (isAdd : AddOrSub) : Coordinate =
         match isAdd with
         | Add  -> x2 + x1, y2 + y1
-        | Sub -> x2 - x1, y2 - y1
+        | Sub  -> x2 - x1, y2 - y1
         
     let isBoardEmpty (st : state) =
         (st.piecesOnBoard.Count = 0)
@@ -121,10 +122,7 @@ module internal PlayMaker
                         | Some _ -> hand
                         | None   -> (MultiSet.removeSingle (charToUint32 character) hand)
                     
-                    let (x1, y1) = coordinate
-                    let (x2, y2) = (dirToCoord dir)
-                    
-                    let newCoordinate = x2 + x1, y2 + y1
+                    let newCoordinate = (assimilateCoords coordinate (dirToCoord dir) Add)
                     
                     let anchorWord = locateLongestWordHelper currWord piecesLeftInHand trieNode piecesOnBoard newCoordinate dir
                     
@@ -180,7 +178,7 @@ module internal PlayMaker
             Some (traverseInDirection st.piecesOnBoard initCoord initDir (StringBuilder() ++ cVal))
             
     // 14. In this method, 
-    let gatherWordsOnBoard (st : state) (direction : Direction) =
+    let assimilatePieces (st : state) (direction : Direction) =
         Map.fold (
             fun (accWordList : (string * (coord * Direction)) list) (coordinate : coord) ((character : char), _) ->
                 match (traverseToLocateWords st coordinate direction) with
@@ -192,14 +190,16 @@ module internal PlayMaker
             ) [] st.piecesOnBoard
         
     // 15. Along with functions '13' and '14', we traverse in the necessary directions to try and locate 
-    let gatherPotentialWords (st : state) =
-        let wordsGoingUpToDown    = gatherWordsOnBoard st Direction.Horizontal
-        let wordsGoingLeftToRight = gatherWordsOnBoard st Direction.Vertical
+    let gatherWordsOnTheBoard (st : state) =
+        let wordsGoingUpToDown    = assimilatePieces st Direction.Horizontal
+        let wordsGoingLeftToRight = assimilatePieces st Direction.Vertical
                 
         wordsGoingUpToDown @ wordsGoingLeftToRight
         
     // 16. 
     let collectAllTheWordsWeCanPlay (st : state) : (string * (coord * Direction)) list =                
+        let gatheredWordsCurrentlyOnBoard = gatherWordsOnTheBoard st
+        
         let rec wordsBotMightPlayHelper (locatedWordsOnBoard : (string * (coord * Direction)) list) (acc : (string * (coord * Direction)) list) =
             match locatedWordsOnBoard with
             | [] -> acc
@@ -208,11 +208,12 @@ module internal PlayMaker
                 let (c, d) = (snd x)
                 let locatedWord = constructDictTrie st s c d 
                 
-                let accumulatedRes = if locatedWord.Length = 0 then (locatedWord, (c, d)) :: acc else acc
-                    
+                let accumulatedRes = if locatedWord.Length > 0 then (locatedWord, (c, d)) :: acc else acc
+                                        
                 wordsBotMightPlayHelper xs accumulatedRes 
             
-        wordsBotMightPlayHelper (gatherPotentialWords st) []
+        wordsBotMightPlayHelper gatheredWordsCurrentlyOnBoard []
+        
         
     // 17. 
     // TODO :: Condense to a boolean tuple type
