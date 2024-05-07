@@ -251,8 +251,9 @@ module internal PlayMaker
                 // 0 0 1A1 0 1 ...etc...
                 let charID               = charToUint32 x
                 let charValue            = charPointValues x
+                let (currX, currY)       = coordinate
                 let (xDirCoor, yDirCoor) = (dirToCoord direction)
-                let (newXCoor, newYCoor) = assimilateCoords ((xDirCoor * piecePos, yDirCoor * piecePos)) coordinate Add
+                let (newXCoor, newYCoor) = assimilateCoords (xDirCoor, yDirCoor) (currX, currY) Add
                 let command              = ((newXCoor, newYCoor), (charID, (x, charValue)))
                 
                 match (doesTileHavePiece st (newXCoor, newYCoor)) with

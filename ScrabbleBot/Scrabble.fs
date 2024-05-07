@@ -76,6 +76,8 @@ module Scrabble =
         let rec aux (st : state) =
             Print.printHand pieces (st.hand )
             
+            
+            
             //////////////////////////////////// BOT PLAY ////////////////////////////////////
             if (st.turnCounter = st.playerNumber) then
                 forcePrint (sprintf "\n================\n It is my turn \n================\n")
@@ -84,8 +86,13 @@ module Scrabble =
             
             
             if (isBoardEmpty st) then
+                let longestWordOnFirstTurn = longestWordWeCanPlayOnTurnOne st
+                
                 forcePrint (sprintf "\n================\nLongest word on turn 1 :: %s\n================\n" (longestWordWeCanPlayOnTurnOne st))
                 
+                let longestParsedWord = parseBotMove st (longestWordOnFirstTurn, ((st.board).center, Horizontal))
+                
+                printParseMove(longestParsedWord)
                 
             else
                 let longestWord = getLongestWord st
@@ -93,8 +100,10 @@ module Scrabble =
                 forcePrint (sprintf "\n================\nLongest word we can play :: %A\n================\n" (collectAllTheWordsWeCanPlay st))
                 
                 forcePrint (sprintf "\n================\nLongest word we can play :: %s\n================\n" (fst longestWord))
-                
-                printParseMove (parseBotMove st longestWord)
+                                
+                let longestParsedWord = parseBotMove st longestWord
+                                
+                printParseMove (longestParsedWord)
             //////////////////////////////////////////////////////////////////////////////////
             
             //////////////////////////////////// REMOVE THIS /////////////////////////////////
