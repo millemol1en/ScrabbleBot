@@ -98,13 +98,12 @@ module Scrabble =
                 else
                     let longestWord = getLongestWord st
                     
-                    forcePrint (sprintf "\n================\nLongest word we can play :: %s\n================\n" (fst longestWord))
+                    forcePrint (sprintf "\n================\nLongest word we can play :: %s\n Longest word coor and dir :: %A\n================\n" (fst longestWord) (snd longestWord))
                     
                     let longestParsedWord = parseBotMove st longestWord
 
                     moveToPlay <- longestParsedWord 
                     
-                
             else
                 forcePrint (sprintf "\n================\n It is the opponents turn \n================\n")
             

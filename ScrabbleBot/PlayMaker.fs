@@ -32,6 +32,11 @@ module internal PlayMaker
     | Vertical
     | Center
     
+    type Compass = | North | East | South | West | NorthWest | NorthEast | SouthEast | SouthWest
+    
+    // N, E, S, W, NE, SE, NW, SW
+    type Neighbours = (bool * bool * bool * bool * bool * bool * bool * bool)
+    
     type AddOrSub =
     | Add
     | Sub
@@ -42,13 +47,25 @@ module internal PlayMaker
         | Vertical   -> (0, 1)
         | Center     -> (0, 0)
         
+    let diagToCoord (diag : Compass) =
+        match diag with
+        | North     -> (0, -1)
+        | East      -> (1,  0)
+        | South     -> (0,  1)
+        | West      -> (-1, 0)
+        | NorthWest -> (-1,-1)
+        | NorthEast -> (1, -1)
+        | SouthEast -> (1,  1)
+        | SouthWest -> (-1, 1)
+    
     let assimilateCoords ((x1, y1) : Coordinate) ((x2, y2) : Coordinate) (isAdd : AddOrSub) : Coordinate =
         match isAdd with
         | Add  -> x2 + x1, y2 + y1
         | Sub  -> x2 - x1, y2 - y1
         
-    let isBoardEmpty (st : state) =
-        (st.piecesOnBoard.Count = 0)
+    let (.+.) (c1 : Coordinate) (c2 : Coordinate) : Coordinate =
+        assimilateCoords c1 c2 Add
+    
     
     // 03. Simply a "syntactical-sugar" operator for building strings - gotten from here:
     // https://www.fssnip.net/by/title/Building-Strings
@@ -84,6 +101,25 @@ module internal PlayMaker
             | None   -> false
         | false -> false
     
+    let (./.) (st : state) (coordinate : Coordinate) =
+        doesTileHavePiece st coordinate
+    
+    // N, E, S, W, NE, SE, NW, SW
+    let checkAllNeighbours (st : state) (coordinate : Coordinate) : Neighbours =
+        let N =   coordinate .+. diagToCoord North
+        let E =   coordinate .+. diagToCoord East
+        let S =   coordinate .+. diagToCoord South
+        let W =   coordinate .+. diagToCoord West
+        let NE =  coordinate .+. diagToCoord NorthEast
+        let NW =  coordinate .+. diagToCoord NorthWest
+        let SE =  coordinate .+. diagToCoord SouthEast
+        let SW =  coordinate .+. diagToCoord SouthWest
+        
+        ((./.) st N, (./.) st E, (./.) st S, (./.) st W, (./.) st NE, (./.) st SE, (./.) st NW, (./.) st SW)
+        
+        
+    let isBoardEmpty (st : state) =
+        (st.piecesOnBoard.Count = 0)
     
     // 09. For the length of the word, find its position in coordinates.
     //     We are utilizing the fact that words may ONLY go from LEFT-to-RIGHT and UP-to-DOWN
@@ -93,7 +129,6 @@ module internal PlayMaker
             | 0 -> cAcc
             | _ -> aux (n - 1) (assimilateCoords cAcc (dirToCoord dir) Add)
         aux length initCoord
-        
         
     // 10. ...
     let isWord (st : state) (word : string) =
@@ -244,9 +279,9 @@ module internal PlayMaker
     
     // 19 
     let parseBotMove (st : state) ((s, (c, d)) : string * (coord * Direction)) : ((int * int) * (uint32 * (char * int))) list =
-        let rec parseBotMoveHelper (commandAcc : ((int * int) * (uint32 * (char * int))) list) (piecePos : int) (cList : char list) (coordinate : coord) (direction : Direction) =
+        let rec parseBotMoveHelper (commandAcc : ((int * int) * (uint32 * (char * int))) list) (cList : char list) (coordinate : coord) (direction : Direction) =
             match cList with
-            | []    -> commandAcc
+            | []    -> List.rev commandAcc
             | x::xs -> 
                 // 0 0 1A1 0 1 ...etc...
                 let charID               = charToUint32 x
@@ -254,16 +289,19 @@ module internal PlayMaker
                 let (currX, currY)       = coordinate
                 let (xDirCoor, yDirCoor) = (dirToCoord direction)
                 let (newXCoor, newYCoor) = assimilateCoords (xDirCoor, yDirCoor) (currX, currY) Add
-                let command              = ((newXCoor, newYCoor), (charID, (x, charValue)))
+                let command              = ((currX, currY), (charID, (x, charValue)))
                 
-                match (doesTileHavePiece st (newXCoor, newYCoor)) with
+                match (doesTileHavePiece st (currX, currY)) with
                 | true ->   // Tile is already on the board, so don't add it. 
-                    parseBotMoveHelper commandAcc (piecePos + 1) xs (newXCoor, newYCoor) direction
+                    parseBotMoveHelper commandAcc xs (newXCoor, newYCoor) direction
                 | false ->  // Tile is NOT already on the board, so do add it.
-                    parseBotMoveHelper (command :: commandAcc) (piecePos + 1) xs (newXCoor, newYCoor) direction
+                    parseBotMoveHelper (command :: commandAcc) xs (newXCoor, newYCoor) direction
                 
-        parseBotMoveHelper [] 0 ([for c' in s do c']) c d
+        parseBotMoveHelper [] ([for c' in s do c']) c d
         
+    
+        
+    
         
     let printParseMove (parsedMove : ((int * int) * (uint32 * (char * int))) list) =
         parsedMove |> List.iter (printf "Command :: %A\n")
