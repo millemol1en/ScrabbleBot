@@ -78,43 +78,49 @@ module Scrabble =
             
             
             
+            let mutable moveToPlay = []
+            
             //////////////////////////////////// BOT PLAY ////////////////////////////////////
             if (st.turnCounter = st.playerNumber) then
                 forcePrint (sprintf "\n================\n It is my turn \n================\n")
+                
+                if (isBoardEmpty st) then
+                    let longestWordOnFirstTurn = longestWordWeCanPlayOnTurnOne st
+                    
+                    forcePrint (sprintf "\n================\nLongest word on turn 1 :: %s\n================\n" (longestWordWeCanPlayOnTurnOne st))
+                
+                    let longestParsedWord = parseBotMove st (longestWordOnFirstTurn, ((st.board).center, Horizontal))
+                    
+                    printParseMove(longestParsedWord)
+                    
+                    moveToPlay <- longestParsedWord
+                    
+                else
+                    let longestWord = getLongestWord st
+                    
+                    forcePrint (sprintf "\n================\nLongest word we can play :: %s\n================\n" (fst longestWord))
+                    
+                    let longestParsedWord = parseBotMove st longestWord
+
+                    moveToPlay <- longestParsedWord 
+                    
+                
             else
                 forcePrint (sprintf "\n================\n It is the opponents turn \n================\n")
             
             
-            if (isBoardEmpty st) then
-                let longestWordOnFirstTurn = longestWordWeCanPlayOnTurnOne st
-                
-                forcePrint (sprintf "\n================\nLongest word on turn 1 :: %s\n================\n" (longestWordWeCanPlayOnTurnOne st))
-                
-                let longestParsedWord = parseBotMove st (longestWordOnFirstTurn, ((st.board).center, Horizontal))
-                
-                printParseMove(longestParsedWord)
-                
-            else
-                let longestWord = getLongestWord st
-            
-                forcePrint (sprintf "\n================\nLongest word we can play :: %A\n================\n" (collectAllTheWordsWeCanPlay st))
-                
-                forcePrint (sprintf "\n================\nLongest word we can play :: %s\n================\n" (fst longestWord))
-                                
-                let longestParsedWord = parseBotMove st longestWord
-                                
-                printParseMove (longestParsedWord)
             //////////////////////////////////////////////////////////////////////////////////
             
             //////////////////////////////////// REMOVE THIS /////////////////////////////////
-            let input =  System.Console.ReadLine()
-            let move = RegEx.parseMove input
+            // let input =  System.Console.ReadLine()
+            // let move = RegEx.parseMove input
             //////////////////////////////////////////////////////////////////////////////////
             
-            if move.IsEmpty then
+            if moveToPlay.IsEmpty then
                 send cstream (SMPass)
             else
-                send cstream (SMPlay move)
+                send cstream (SMPlay moveToPlay)
+            
             
             // debugPrint (sprintf "Player %d -> Server:\n%A\n" (st.playerNumber) move) // keep the debug lines. They are useful.            
 
@@ -174,7 +180,6 @@ module Scrabble =
                 aux st'
             | RCM (CMPassed (pid)) ->
                 (* Passed *)
-                
                 
                 let st' =
                     {
