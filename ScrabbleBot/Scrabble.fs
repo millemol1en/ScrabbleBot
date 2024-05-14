@@ -82,12 +82,12 @@ module Scrabble =
             
             //////////////////////////////////// BOT PLAY ////////////////////////////////////
             if (st.turnCounter = st.playerNumber) then
-                forcePrint (sprintf "\n================\n It is my turn \n================\n")
+                // forcePrint (sprintf "\n================\n It is my turn \n================\n")
                 
                 if (isBoardEmpty st) then
                     let longestWordOnFirstTurn = longestWordWeCanPlayOnTurnOne st
                     
-                    forcePrint (sprintf "\n================\nLongest word on turn 1 :: %s\n================\n" (longestWordWeCanPlayOnTurnOne st))
+                    // forcePrint (sprintf "\n================\nLongest word on turn 1 :: %s\n================\n" (longestWordWeCanPlayOnTurnOne st))
                 
                     let longestParsedWord = parseBotMove st (longestWordOnFirstTurn, ((st.board).center, Horizontal))
                     
@@ -98,14 +98,13 @@ module Scrabble =
                 else
                     let longestWord = getLongestWord st
                     
-                    forcePrint (sprintf "\n================\nLongest word we can play :: %s\n Longest word coor and dir :: %A\n================\n" (fst longestWord) (snd longestWord))
+                    // forcePrint (sprintf "\n================\nLongest word we can play :: %s\n Longest word coor and dir :: %A\n================\n" (fst longestWord) (snd longestWord))
                     
                     let longestParsedWord = parseBotMove st longestWord
 
                     moveToPlay <- longestParsedWord 
                     
-            else
-                forcePrint (sprintf "\n================\n It is the opponents turn \n================\n")
+            
             
             
             //////////////////////////////////////////////////////////////////////////////////
@@ -155,7 +154,7 @@ module Scrabble =
                 
                 let updatedBoard = insertMovesIntoState ms st.piecesOnBoard
                 
-                forcePrint(sprintf "\n!Opponent played and the board looks as follows %A !\n" updatedBoard)
+                // forcePrint(sprintf "\n!Opponent played and the board looks as follows %A !\n" updatedBoard)
                 
                 let st' =
                     {
@@ -168,7 +167,7 @@ module Scrabble =
             | RCM (CMPlayFailed (pid, ms)) ->
                 (* Failed play. Update your state *)
                 
-                forcePrint (sprintf "Attempted to play: %A" ms)
+                // forcePrint (sprintf "Attempted to play: %A" ms)
                 
                 let st' =
                     {

@@ -2,7 +2,6 @@ module internal PlayMaker
 
     open GameState
     open StateMonad
-    open ScrabbleUtil.DebugPrint
     open ScrabbleUtil
     open ScrabbleUtil.Dictionary
     open MultiSet
@@ -32,21 +31,26 @@ module internal PlayMaker
     | Vertical
     | Center
     
+    // 03. Compass type - [intention was to make a neighbors algorithm to deal with incorrect placement]
     type Compass = | North | East | South | West | NorthWest | NorthEast | SouthEast | SouthWest
     
-    // N, E, S, W, NE, SE, NW, SW
+    // 04. Determine whether or not a tile has neighbors
+    // Order is :: N, E, S, W, NE, SE, NW, SW
     type Neighbours = (bool * bool * bool * bool * bool * bool * bool * bool)
     
+    // 05. Addition or subtract type used for indication:
     type AddOrSub =
     | Add
     | Sub
 
+    // 06. Basic 'dirToCoord':
     let dirToCoord (dir : Direction) =
         match dir with
         | Horizontal -> (1, 0)
         | Vertical   -> (0, 1)
         | Center     -> (0, 0)
         
+    // 07. Enhanced 'dirToCoord' [Not utilized]:
     let diagToCoord (diag : Compass) =
         match diag with
         | North     -> (0, -1)
@@ -58,41 +62,41 @@ module internal PlayMaker
         | SouthEast -> (1,  1)
         | SouthWest -> (-1, 1)
     
+    // 08. Join 2 coordinates together:
     let assimilateCoords ((x1, y1) : Coordinate) ((x2, y2) : Coordinate) (isAdd : AddOrSub) : Coordinate =
         match isAdd with
         | Add  -> x2 + x1, y2 + y1
         | Sub  -> x2 - x1, y2 - y1
         
+    // 09. Syntax sugar for addition:
     let (.+.) (c1 : Coordinate) (c2 : Coordinate) : Coordinate =
         assimilateCoords c1 c2 Add
     
     
-    // 03. Simply a "syntactical-sugar" operator for building strings - gotten from here:
+    // 10. Simply a "syntactical-sugar" operator for building strings - gotten from here:
     // https://www.fssnip.net/by/title/Building-Strings
     let (++) (s : StringBuilder) (c : char) : StringBuilder =
         s.Append c
         
-    // 03. Represents a word along with its starting coordinate and direction it moves in
+    // 11. Represents a word along with its starting coordinate and direction it moves in:
     type WordPackage  = (string * (Coordinate * Direction))
     
-    // 04. ...
+    // 12. Convert a character to its uint32 identifier as requested by the server when parsing to a move:
     let charToUint32 (c : char) = uint32(System.Char.ToUpper(c)) - 64u
     
-    // 05. ...uint32ToChar
+    // 13. Convert a unint32 to its respective char:
     let uint32ToChar (uint : uint32) = char(uint + 64u)
     
+    // 14. Multiset to char
     let msToChar = map (fun msType -> uint32ToChar msType)
     
-    // 06. ...
-    type PieceInfo  = (Coordinate * (uint32 * (char * int)))
-    
-    // 07. ...
+    // 15. Check if tile exists:
     let doesTileExist (st : state) (c : Coordinate) =
         match (st.board.squares c) with
         | Success _ -> true
         | Failure _ -> false
         
-    // 08. ... 
+    // 16. Check if tile has a piece:
     let doesTileHavePiece (st : state) (c : Coordinate) : bool =
         match (doesTileExist st c) with
         | true ->
@@ -101,9 +105,11 @@ module internal PlayMaker
             | None   -> false
         | false -> false
     
+    // 17. Syntactical sugar for checking if tile has a piece:
     let (./.) (st : state) (coordinate : Coordinate) =
         doesTileHavePiece st coordinate
     
+    // 18. Check all neighbors:
     // N, E, S, W, NE, SE, NW, SW
     let checkAllNeighbours (st : state) (coordinate : Coordinate) : Neighbours =
         let N =   coordinate .+. diagToCoord North
@@ -117,11 +123,11 @@ module internal PlayMaker
         
         ((./.) st N, (./.) st E, (./.) st S, (./.) st W, (./.) st NE, (./.) st SE, (./.) st NW, (./.) st SW)
         
-        
+    // 19. Check if board is empty:
     let isBoardEmpty (st : state) =
         (st.piecesOnBoard.Count = 0)
     
-    // 09. For the length of the word, find its position in coordinates.
+    // 20. For the length of the word, find its position in coordinates.
     //     We are utilizing the fact that words may ONLY go from LEFT-to-RIGHT and UP-to-DOWN
     let calcCoordUsingLength (length : int) (initCoord : Coordinate) (dir : Direction) =
         let rec aux (n : int) (cAcc : Coordinate) =
@@ -130,11 +136,11 @@ module internal PlayMaker
             | _ -> aux (n - 1) (assimilateCoords cAcc (dirToCoord dir) Add)
         aux length initCoord
         
-    // 10. ...
+    // 21. Confirm with our trie that its actually word:
     let isWord (st : state) (word : string) =
         ScrabbleUtil.Dictionary.lookup word st.dict
         
-    // 11. Get the longest word in a specified direction
+    // 22. Get the longest word in a specified direction
     let locateLongestWordInADirection (st : GameState.state) (initWord : string) (initDict : Dict) (initCoord : coord) (initDir : Direction) =
         let rec locateLongestWordHelper (wordAcc : string) (hand : MultiSet<uint32>) (dict : Dict) (piecesOnBoard : Map<coord, (char * int)>) (coordinate : coord) (dir : Direction) = 
             
@@ -150,7 +156,7 @@ module internal PlayMaker
                 match (step character dict) with
                 | Some (isWord, trieNode) ->
                     
-                    // We have to keep track of the pieces we have used:
+                    // Make sure we know which pieces have been used and which are left in our hand:
                     let piecesLeftInHand =
                         match (piecesOnBoard.TryFind coordinate) with
                         | Some _ -> hand
@@ -173,7 +179,7 @@ module internal PlayMaker
         locateLongestWordHelper initWord st.hand initDict st.piecesOnBoard initCoord initDir
         
         
-    // 12. Construct a dict trie of a specific word (in the arguments 'wordAcc') to then see if we can add any more to it
+    // 23. Construct a dict trie of a specific word (in the arguments 'wordAcc') to then see if we can add any more to it
     let constructDictTrie (st : state) (wordAcc : string) (startCoord : coord) (direction : Direction) : string =
         let (wordLength, currDict) =
             List.fold (fun ((trieDepth : int), (d : Dict)) c ->
@@ -189,7 +195,7 @@ module internal PlayMaker
             
         locateLongestWordInADirection st wordAcc currDict (calcCoordUsingLength wordLength startCoord direction) direction
         
-    // 13. 
+    // 24. Used in conjunction with M.25 to locate a string word in some given direction:
     let traverseToLocateWords (st : state) (initCoord : coord) (initDir : Direction) : string option =
         let rec traverseInDirection (piecesOnBoard : Map<coord, (char * int)>) (currCoord : coord) (currDir : Direction) (accWord : StringBuilder) =
             // We step in the specified direction to locate the necessary word...
@@ -211,7 +217,9 @@ module internal PlayMaker
                         
             Some (traverseInDirection st.piecesOnBoard initCoord initDir (StringBuilder() ++ cVal))
             
-    // 14. In this method, 
+    // 25. In this method, we construct our list of words, going in a particular direction and assimilating all
+    //     the strings - this will include all playable words. We will later then filter out which are actually
+    //     playable and which are not:
     let assimilatePieces (st : state) (direction : Direction) =
         Map.fold (
             fun (accWordList : (string * (coord * Direction)) list) (coordinate : coord) ((character : char), _) ->
@@ -223,14 +231,15 @@ module internal PlayMaker
                 
             ) [] st.piecesOnBoard
         
-    // 15. Along with functions '13' and '14', we traverse in the necessary directions to try and locate 
+    // 26. Along with functions '24' and '25', we traverse in the core directions playable directions
+    //     'horizontally' or 'vertically' - to try and find playable words:
     let gatherWordsOnTheBoard (st : state) =
         let wordsGoingUpToDown    = assimilatePieces st Direction.Horizontal
         let wordsGoingLeftToRight = assimilatePieces st Direction.Vertical
                 
         wordsGoingUpToDown @ wordsGoingLeftToRight
         
-    // 16. 
+    // 27. Collect all the possible words we can play based on what we have on the board:
     let collectAllTheWordsWeCanPlay (st : state) : (string * (coord * Direction)) list =                
         let gatheredWordsCurrentlyOnBoard = gatherWordsOnTheBoard st
         
@@ -252,9 +261,11 @@ module internal PlayMaker
         wordsBotMightPlayHelper gatheredWordsCurrentlyOnBoard []
         
         
-    // 17. 
-    // TODO :: Condense to a boolean tuple type
-    // TODO :: Test these 2 variants - one using recursion the other using List.fold
+    // 28. We filter through to find the longest playable word, and from this collectively go through all the
+    //     previous methods, performing the necessary word gathering, tile checking, etc...
+    //     This method needs an additional safe guard to make sure it takes into consideration a playable word.
+    //     Currently, we discard a word in replacement for a longer "better" word, but this ruins our chances to
+    //     actually play a word we are allowed to put down:
     let getLongestWord (st : state) =
         let rec getLongestWordHelper (acc : (string * (coord * Direction))) (listOfPlayableWords : (string * (coord * Direction)) list) =
             match listOfPlayableWords with
@@ -270,20 +281,21 @@ module internal PlayMaker
            
     
     
-    // 18. Our play is on the first turn.
+    // 29. Our play is on the first turn.
     //     In this case, the board is clean and a play must be made in the center of the board.
     //     The safest and easiest play is just to simply go along the horizontal axis and place
-    //     the words starting from the center. 
+    //     the words starting from the center:
     let longestWordWeCanPlayOnTurnOne (st : state) =
         locateLongestWordInADirection st "" st.dict (dirToCoord Center) Horizontal
     
-    // 19 
+    // 30. Here we parse the string into a list of moves the server can be given to perform our play.
+    //     The coord and Direction indicate where we start and where we are heading:
     let parseBotMove (st : state) ((s, (c, d)) : string * (coord * Direction)) : ((int * int) * (uint32 * (char * int))) list =
         let rec parseBotMoveHelper (commandAcc : ((int * int) * (uint32 * (char * int))) list) (cList : char list) (coordinate : coord) (direction : Direction) =
             match cList with
             | []    -> List.rev commandAcc
             | x::xs -> 
-                // 0 0 1A1 0 1 ...etc...
+                // COMMAND ORDER :: 0 0 1A1 0 1
                 let charID               = charToUint32 x
                 let charValue            = charPointValues x
                 let (currX, currY)       = coordinate
@@ -300,8 +312,6 @@ module internal PlayMaker
         parseBotMoveHelper [] ([for c' in s do c']) c d
         
     
-        
-    
-        
+    // 31. Print statement to double check the parsed syntax when debugging:
     let printParseMove (parsedMove : ((int * int) * (uint32 * (char * int))) list) =
         parsedMove |> List.iter (printf "Command :: %A\n")
