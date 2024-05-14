@@ -80,7 +80,7 @@ module Scrabble =
             
             let mutable moveToPlay = []
             
-            //////////////////////////////////// BOT PLAY ////////////////////////////////////
+            //////////////////////////////////// BOT PLAYER ////////////////////////////////////
             if (st.turnCounter = st.playerNumber) then
                 // forcePrint (sprintf "\n================\n It is my turn \n================\n")
                 
@@ -104,16 +104,16 @@ module Scrabble =
 
                     moveToPlay <- longestParsedWord 
                     
-            
-            
-            
             //////////////////////////////////////////////////////////////////////////////////
             
-            //////////////////////////////////// REMOVE THIS /////////////////////////////////
+            //////////////////////////////////// HUMAN PLAYER /////////////////////////////////
             // let input =  System.Console.ReadLine()
             // let move = RegEx.parseMove input
             //////////////////////////////////////////////////////////////////////////////////
             
+            
+            
+            // INPUT TO SERVER:
             if moveToPlay.IsEmpty then
                 send cstream (SMPass)
             else
