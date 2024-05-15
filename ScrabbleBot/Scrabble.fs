@@ -66,11 +66,22 @@ module State =
         else
             st.turnCounter + 1u
             
+    let sendMoveToServer (cstream : Stream) (moveToPlay : (coord * (uint32 * (char * int))) list) =
+        if moveToPlay.IsEmpty then
+                // TODO :: Make it change hand
+                // if (vowelCount st) < 1 then
+                //     send cstream (SMChange (toList st.hand))
+                // else
+                    send cstream (SMPass)
+            else
+                send cstream (SMPlay moveToPlay)
+            
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         
 module Scrabble =
     open System.Threading
     open State
+    open MultiSet
     
     let playGame cstream pieces (st : state) =
         let rec aux (st : state) =
@@ -91,18 +102,24 @@ module Scrabble =
                 
                     let longestParsedWord = parseBotMove st (longestWordOnFirstTurn, ((st.board).center, Horizontal))
                     
-                    printParseMove(longestParsedWord)
+                    // printParseMove(longestParsedWord)
                     
-                    moveToPlay <- longestParsedWord
+                    printAllWordsWeCouldPlay (collectAllTheWordsWeCanPlay st)
+                    
+                    sendMoveToServer cstream longestParsedWord
                     
                 else
-                    let longestWord = getLongestWord st
+                    let longestWord = test st
                     
                     // forcePrint (sprintf "\n================\nLongest word we can play :: %s\n Longest word coor and dir :: %A\n================\n" (fst longestWord) (snd longestWord))
                     
+                    printAllWordsWeCouldPlay (collectAllTheWordsWeCanPlay st)
+                    
                     let longestParsedWord = parseBotMove st longestWord
 
-                    moveToPlay <- longestParsedWord 
+                    sendMoveToServer cstream longestParsedWord
+                    
+                    printf "\n\n[BEFORE] Length of move :: %i\n" moveToPlay.Length
                     
             //////////////////////////////////////////////////////////////////////////////////
             
@@ -111,14 +128,9 @@ module Scrabble =
             // let move = RegEx.parseMove input
             //////////////////////////////////////////////////////////////////////////////////
             
-            
+            printf "\n\n[AFTER] Length of move :: %i\n" moveToPlay.Length
             
             // INPUT TO SERVER:
-            if moveToPlay.IsEmpty then
-                send cstream (SMPass)
-            else
-                send cstream (SMPlay moveToPlay)
-            
             
             // debugPrint (sprintf "Player %d -> Server:\n%A\n" (st.playerNumber) move) // keep the debug lines. They are useful.            
 

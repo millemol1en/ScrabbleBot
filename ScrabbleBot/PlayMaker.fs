@@ -122,7 +122,11 @@ module internal PlayMaker
         let SW =  coordinate .+. diagToCoord SouthWest
         
         ((./.) st N, (./.) st E, (./.) st S, (./.) st W, (./.) st NE, (./.) st SE, (./.) st NW, (./.) st SW)
-        
+       
+    let countNumNeighbours (neighbours : Neighbours) : int =
+        let (n, e, s, w, ne, se, nw, sw) = neighbours
+        [n; e; s; w; ne; se; nw; sw] |> List.sumBy (fun b -> if b then 1 else 0)
+     
     // 19. Check if board is empty:
     let isBoardEmpty (st : state) =
         (st.piecesOnBoard.Count = 0)
@@ -279,8 +283,23 @@ module internal PlayMaker
         
         getLongestWordHelper ("", ((0,0), Center)) (collectAllTheWordsWeCanPlay st)
            
-    
-    
+    let test (st : state) =
+        let rec getLongestWordHelper (acc : (string * (coord * Direction))) (listOfPlayableWords : (string * (coord * Direction)) list) =
+            match listOfPlayableWords with
+            | []    -> acc
+            | x::xs ->
+                let (currS, (currCoor, _)) = x
+                let (accS, (accCoor, _)) = acc
+                
+                let currPieceNumNeighbors = countNumNeighbours (checkAllNeighbours st currCoor)
+                let accPieceNumNeighbors  = countNumNeighbours (checkAllNeighbours st accCoor)
+                
+                let acc' = if currPieceNumNeighbors < accPieceNumNeighbors then x else acc
+                getLongestWordHelper acc' xs
+        
+        getLongestWordHelper ("", ((0,0), Center)) (collectAllTheWordsWeCanPlay st)
+           
+           
     // 29. Our play is on the first turn.
     //     In this case, the board is clean and a play must be made in the center of the board.
     //     The safest and easiest play is just to simply go along the horizontal axis and place
@@ -315,3 +334,26 @@ module internal PlayMaker
     // 31. Print statement to double check the parsed syntax when debugging:
     let printParseMove (parsedMove : ((int * int) * (uint32 * (char * int))) list) =
         parsedMove |> List.iter (printf "Command :: %A\n")
+        
+    let printAllWordsWeCouldPlay (lstOfWords : (string * (coord * Direction)) list) =
+        printf "\n!================== ALL WORDS ==================!\n"
+        lstOfWords |> List.iter (fun (s, (c, d)) ->
+                printf "String     :: %s\n" s
+                printf "Coordinate :: (%i,%i)\n" (fst c) (snd c)
+                printf "Direction  :: %A\n" d
+            )
+        printf "\n!===============================================!\n"
+        
+    let isVowel (c : char) =
+        match c with
+        | 'A' | 'E' | 'I' | 'O' | 'U' -> true
+        | _ -> false
+    
+    let vowelCount (st : state) =
+        let handAsChar = toList (msToChar st.hand)
+        
+        List.fold (fun acc letter -> 
+            match isVowel letter with
+            | true -> acc + 1
+            | false -> acc
+        ) 0 handAsChar
