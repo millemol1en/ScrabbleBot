@@ -47,10 +47,10 @@ let main argv =
     let (dictionary, time) =
         time (fun () -> ScrabbleUtil.Dictionary.mkDict words dictAPI)
 
-    let players =
-        [ ("ScrabBoyz", dictionary, ScrabBoyz.Scrabble.startGame)
-          ("srabasds", dictionary, ScrabBoyz.Scrabble.startGame) ]
-    // let players    = [("ScrabBoyz", dictionary, ScrabBoyz.Scrabble.startGame);]
+    // let players =
+    //     [ ("ScrabBoyz", dictionary, ScrabBoyz.Scrabble.startGame)
+    //       ("srabasds", dictionary, ScrabBoyz.Scrabble.startGame) ]
+    let players = [ ("ScrabBoyz", dictionary, ScrabBoyz.Scrabble.startGame) ]
     // let players = [ ("ScrabBoyz", dictionary, ScrabBoyz.Scrabble.startGame) ( "ScrabBoyz2" dictionary,  ScrabBoyz.Scrabble.startGame ) ]
 
     //let players = spawnMultiples "OxyphenButazone" dictionary Oxyphenbutazone.Scrabble.startGame 2

@@ -180,10 +180,41 @@ let calcCoordUsingLength (length: int) (initCoord: Coordinate) (dir: Direction) 
 
     aux length initCoord
 
+
 // 21. Confirm with our trie that its actually word:
 let isWord (st: state) (word: string) =
     ScrabbleUtil.Dictionary.lookup word st.dict
 
+let isWordValidOnBoard st word (x, y) dir =
+    let rec helper word (x, y) dir =
+        match word with
+        | "" -> true
+        | _ ->
+            match st.piecesOnBoard.TryFind(x, y) with
+            | Some(c, _) when c = word.[0] ->
+                // The tile contains the expected character, continue with the rest of the word
+                helper word.[1..] ((x, y) .+. dirToCoord dir) dir
+            | _ -> false // The tile is empty or contains a different character
+
+    helper word (x, y) dir
+
+let generateAdjacentWords st (x, y) character dir =
+    let adjCoords =
+        match dir with
+        | Horizontal -> [ (x, y) .+. diagToCoord North; (x, y) .+. diagToCoord South ] // Check above and below for horizontal placement
+        | Vertical -> [ (x, y) .+. diagToCoord East; (x, y) .+. diagToCoord West ] // Check left and right for vertical placement
+
+    let adjTiles = List.map (fun coord -> st.piecesOnBoard.TryFind coord) adjCoords
+
+    let adjWords =
+        adjTiles
+        |> List.map (function
+            | Some(c, _) -> Some(c.ToString() + character.ToString()) // Form a word with the adjacent tile
+            | None -> None) // No tile at this coordinate
+        |> List.choose id // Remove None values
+
+    // Filter out words that are not in the dictionary
+    List.filter (isWord st) adjWords
 // 22. Get the longest word in a specified direction
 let locateLongestWordInADirection
     (st: GameState.state)
@@ -224,11 +255,16 @@ let locateLongestWordInADirection
 
                     let isPlacementValid =
                         if doesTileExist st newCoordinate then
-                            match st.piecesOnBoard.TryFind newCoordinate with
+                            match (piecesOnBoard.TryFind newCoordinate) with
                             | Some(c, _) -> c = character // The tile contains the same character
-                            | None -> true // The tile is empty
+                            | None ->
+                                // The tile is empty, check if the placement forms a valid word
+                                let adjWords = generateAdjacentWords st newCoordinate character dir
+
+                                List.forall (fun word -> isWordValidOnBoard st word newCoordinate dir) adjWords
                         else
                             false // The tile is outside the board
+
 
                     let anchorWord =
                         locateLongestWordHelper currWord piecesLeftInHand trieNode piecesOnBoard newCoordinate dir
@@ -250,62 +286,6 @@ let locateLongestWordInADirection
             startingPoint
 
     locateLongestWordHelper initWord st.hand initDict st.piecesOnBoard initCoord initDir
-
-// let getCoordsBetween (startCoord: coord) (endCoord: coord) (direction: Direction) : coord list =
-//     let (startX, startY) = startCoord
-//     let (endX, endY) = endCoord
-//     let (dirX, dirY) = dirToCoord direction
-
-//     let rec getCoordsHelper (currX: int) (currY: int) (acc: coord list) : coord list =
-//         if currX > endX || currY > endY then
-//             List.rev acc
-//         else
-//             getCoordsHelper (currX + dirX) (currY + dirY) ((currX, currY) :: acc)
-
-//     getCoordsHelper startX startY []
-
-// let isOverlapValidAtCoord (st: state) (word: string) (coord: coord) (direction: Direction) : bool =
-//     // Get the character to be placed at the coordinate
-//     let index = getWordIndexForCoord word coord direction
-//     let charToPlace = word.[index]
-
-//     // Check if the tile at the coordinate is empty or contains the same character
-//     match st.piecesOnBoard.TryFind coord with
-//     | Some(c, _) when c = charToPlace -> true
-//     | None -> true
-//     | _ -> false
-
-// let validateWordPlacement (st: state) (word: string) (startCoord: coord) (direction: Direction) : bool =
-//     // Calculate the end coordinate of the word
-//     let endCoord = calcCoordUsingLength (String.length word) startCoord direction
-
-
-//     // Check if the word fits within the board boundaries
-//     if not (doesTileExist st startCoord) || not (doesTileExist st endCoord) then
-//         false
-//     else
-//         // Check if the word does not overlap with existing words in a way that forms invalid words
-//         let coords = getCoordsBetween startCoord endCoord direction
-
-//         let isOverlapValid =
-//             List.forall
-//                 (fun coord ->
-//                     not (doesTileHavePiece st coord)
-//                     || isOverlapValidAtCoord st word coord direction)
-//                 coords
-
-//         if not isOverlapValid then
-//             false
-//         else
-//             // Check if the word is connected to the existing words on the board
-//             let isConnected = isWordConnected st startCoord direction
-
-//             if not isConnected then
-//                 false
-//             else
-//                 // All checks passed
-//                 true
-
 
 // 23. Construct a dict trie of a specific word (in the arguments 'wordAcc') to then see if we can add any more to it
 let constructDictTrie (st: state) (wordAcc: string) (startCoord: coord) (direction: Direction) : string =
@@ -430,22 +410,31 @@ let test (st: state) =
             let (currS, (currCoor, _)) = x
             let (accS, (accCoor, _)) = acc
 
-
             // If we place horizontally, we need to consider NE and SE
             // If we place vertically, we need to consider SE and SW
 
             let currPieceNumNeighbors = countNumNeighbours (checkAllNeighbours st currCoor)
             let accPieceNumNeighbors = countNumNeighbours (checkAllNeighbours st accCoor)
 
-            let acc' =
-                if currPieceNumNeighbors < accPieceNumNeighbors then
-                    x
-                else
-                    acc
+            // Print the current word and number of neighbors
+            // printfn "Current word: %s, neighbors: %d" currS currPieceNumNeighbors
+
+            // let acc' =
+            //     if currPieceNumNeighbors < accPieceNumNeighbors then
+            //         x
+            //     else
+            //         acc
+
+            let acc' = if currS.Length > accS.Length then x else acc
 
             getLongestWordHelper acc' xs
 
-    getLongestWordHelper ("", ((0, 0), Center)) (collectAllTheWordsWeCanPlay st)
+    // Get all playable words and print the number of words
+    let allWords = collectAllTheWordsWeCanPlay st
+    printfn "Number of playable words: %d" (List.length allWords)
+
+    getLongestWordHelper ("", ((0, 0), Center)) allWords
+
 
 
 // 29. Our play is on the first turn.
@@ -453,7 +442,7 @@ let test (st: state) =
 //     The safest and easiest play is just to simply go along the horizontal axis and place
 //     the words starting from the center:
 let longestWordWeCanPlayOnTurnOne (st: state) =
-    locateLongestWordInADirection st "" st.dict (dirToCoord Center) Horizontal
+    locateLongestWordInADirection st "" st.dict (dirToCoord Center) Vertical
 
 // 30. Here we parse the string into a list of moves the server can be given to perform our play.
 //     The coord and Direction indicate where we start and where we are heading:
