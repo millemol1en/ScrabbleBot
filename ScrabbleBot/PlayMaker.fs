@@ -126,6 +126,20 @@ module internal PlayMaker
     let countNumNeighbours (neighbours : Neighbours) : int =
         let (n, e, s, w, ne, se, nw, sw) = neighbours
         [n; e; s; w; ne; se; nw; sw] |> List.sumBy (fun b -> if b then 1 else 0)
+        
+    // 
+    let checkHorizontalDirNeighbors (st : state) (coordinate : Coordinate) : (bool * bool) =
+        let NE = assimilateCoords (diagToCoord NorthEast) coordinate Add
+        let SE = assimilateCoords (diagToCoord SouthEast) coordinate Add
+        
+        ((doesTileHavePiece st NE), (doesTileHavePiece st SE))
+        
+    // 
+    let checkVerticalDirNeighbors (st : state) (coordinate : Coordinate) : (bool * bool) =
+        let SE = assimilateCoords (diagToCoord SouthEast) coordinate Add
+        let SW = assimilateCoords (diagToCoord SouthWest) coordinate Add
+        
+        ((doesTileHavePiece st SW), (doesTileHavePiece st SE))
      
     // 19. Check if board is empty:
     let isBoardEmpty (st : state) =
@@ -290,6 +304,10 @@ module internal PlayMaker
             | x::xs ->
                 let (currS, (currCoor, _)) = x
                 let (accS, (accCoor, _)) = acc
+                
+                
+                // If we place horizontally, we need to consider NE and SE
+                // If we place vertically, we need to consider SE and SW
                 
                 let currPieceNumNeighbors = countNumNeighbours (checkAllNeighbours st currCoor)
                 let accPieceNumNeighbors  = countNumNeighbours (checkAllNeighbours st accCoor)

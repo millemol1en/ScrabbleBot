@@ -88,9 +88,7 @@ module Scrabble =
             Print.printHand pieces (st.hand )
             
             
-            
-            let mutable moveToPlay = []
-            
+                        
             //////////////////////////////////// BOT PLAYER ////////////////////////////////////
             if (st.turnCounter = st.playerNumber) then
                 // forcePrint (sprintf "\n================\n It is my turn \n================\n")
@@ -103,6 +101,8 @@ module Scrabble =
                     let longestParsedWord = parseBotMove st (longestWordOnFirstTurn, ((st.board).center, Horizontal))
                     
                     // printParseMove(longestParsedWord)
+                    
+                    printf "\n\nLength of move :: %s\n" (longestWordOnFirstTurn)
                     
                     printAllWordsWeCouldPlay (collectAllTheWordsWeCanPlay st)
                     
@@ -117,9 +117,11 @@ module Scrabble =
                     
                     let longestParsedWord = parseBotMove st longestWord
 
+                    printf "\n\nLength of move :: %s\n" (fst longestWord)
+                    
                     sendMoveToServer cstream longestParsedWord
                     
-                    printf "\n\n[BEFORE] Length of move :: %i\n" moveToPlay.Length
+                    
                     
             //////////////////////////////////////////////////////////////////////////////////
             
@@ -127,10 +129,6 @@ module Scrabble =
             // let input =  System.Console.ReadLine()
             // let move = RegEx.parseMove input
             //////////////////////////////////////////////////////////////////////////////////
-            
-            printf "\n\n[AFTER] Length of move :: %i\n" moveToPlay.Length
-            
-            // INPUT TO SERVER:
             
             // debugPrint (sprintf "Player %d -> Server:\n%A\n" (st.playerNumber) move) // keep the debug lines. They are useful.            
 
