@@ -184,37 +184,106 @@ let calcCoordUsingLength (length: int) (initCoord: Coordinate) (dir: Direction) 
 // 21. Confirm with our trie that its actually word:
 let isWord (st: state) (word: string) =
     ScrabbleUtil.Dictionary.lookup word st.dict
+// Refactored generateAdjacentWords function
+let generateAdjacentWords st (x, y) character dir =
+    // Define the opposite direction for building words in the opposite direction
+    let oppositeDirection =
+        function
+        | North -> South
+        | East -> West
+        | South -> North
+        | West -> East
+        | _ -> failwith "Invalid direction for opposite"
 
+    // Build a word from a starting coordinate in a specified direction
+    let buildWordFromCoord coord direction =
+        let rec build acc currCoord =
+            match st.piecesOnBoard.TryFind(currCoord) with
+            | Some(c, _) -> build (c.ToString() + acc) (assimilateCoords currCoord (diagToCoord direction) Add)
+            | None -> acc
+
+        build "" coord
+
+    // Get the adjacent coordinates based on the direction of the main word
+    let adjCoords =
+        match dir with
+        | Horizontal -> [ (x, y) .+. diagToCoord North; (x, y) .+. diagToCoord South ]
+        | Vertical -> [ (x, y) .+. diagToCoord East; (x, y) .+. diagToCoord West ]
+        | _ -> failwith "Invalid main direction"
+
+    // Generate words from adjacent coordinates
+    let adjWords =
+        adjCoords
+        |> List.collect (fun coord ->
+            let dir1, dir2 =
+                match dir with
+                | Horizontal -> North, South
+                | Vertical -> East, West
+                | _ -> failwith "Invalid main direction"
+
+            let word1 =
+                buildWordFromCoord (assimilateCoords coord (diagToCoord (oppositeDirection dir1)) Add) dir1
+
+            let word2 = buildWordFromCoord (assimilateCoords coord (diagToCoord dir2) Add) dir2
+            [ word1; word2 ])
+        |> List.filter (fun word -> word.Length > 1) // Filter out single characters
+    // Filter out words that are not in the dictionary
+    List.filter (isWord st) adjWords
+
+// Helper function to check if a tile is empty
+let isTileEmpty st (x, y) =
+    match st.piecesOnBoard.TryFind(x, y) with
+    | Some _ -> false
+    | None -> true
+
+// Helper function to check if the move is within the board boundaries
+let isWithinBoundaries (x, y) dir wordLength =
+    let (dx, dy) = dirToCoord dir
+    let endX = x + (dx * (wordLength - 1))
+    let endY = y + (dy * (wordLength - 1))
+    // Assuming the board is 15x15
+    endX >= 0 && endX < 15 && endY >= 0 && endY < 15
+
+// Helper function to check if the word is adjacent to existing words
+let isAdjacentToExistingWord st (x, y) dir (word: string) =
+    let directions = [ North; East; South; West ]
+
+    let wordCoords =
+        [ for i in 0 .. word.Length - 1 -> (x + i * fst (dirToCoord dir), y + i * snd (dirToCoord dir)) ]
+
+    let isAdjacent coord =
+        directions
+        |> List.exists (fun compassDir ->
+            let (dx, dy) = diagToCoord compassDir
+            let adjacentCoord = (fst coord + dx, snd coord + dy)
+            st.piecesOnBoard.ContainsKey(adjacentCoord))
+
+    wordCoords |> List.exists isAdjacent
+
+
+// Modified isWordValidOnBoard function with additional checks
 let isWordValidOnBoard st word (x, y) dir =
     let rec helper word (x, y) dir =
         match word with
-        | "" -> true
+        | "" -> true // End of the word reached, no more letters to check
         | _ ->
             match st.piecesOnBoard.TryFind(x, y) with
             | Some(c, _) when c = word.[0] ->
                 // The tile contains the expected character, continue with the rest of the word
                 helper word.[1..] ((x, y) .+. dirToCoord dir) dir
-            | _ -> false // The tile is empty or contains a different character
+            | None ->
+                // The tile is empty, check if it's within boundaries and adjacent to existing words
+                let withinBoundaries = isWithinBoundaries (x, y) dir word.Length
+                let adjacentToExistingWord = isAdjacentToExistingWord st (x, y) dir
+                // Debugging: Log the status of boundary and adjacency checks
+                printfn "Within boundaries? %b" withinBoundaries
+                printfn "Adjacent to existing word? %b" (adjacentToExistingWord word)
+                withinBoundaries && adjacentToExistingWord word
+            | _ -> false // The tile is not valid for placement
 
     helper word (x, y) dir
 
-let generateAdjacentWords st (x, y) character dir =
-    let adjCoords =
-        match dir with
-        | Horizontal -> [ (x, y) .+. diagToCoord North; (x, y) .+. diagToCoord South ] // Check above and below for horizontal placement
-        | Vertical -> [ (x, y) .+. diagToCoord East; (x, y) .+. diagToCoord West ] // Check left and right for vertical placement
 
-    let adjTiles = List.map (fun coord -> st.piecesOnBoard.TryFind coord) adjCoords
-
-    let adjWords =
-        adjTiles
-        |> List.map (function
-            | Some(c, _) -> Some(c.ToString() + character.ToString()) // Form a word with the adjacent tile
-            | None -> None) // No tile at this coordinate
-        |> List.choose id // Remove None values
-
-    // Filter out words that are not in the dictionary
-    List.filter (isWord st) adjWords
 // 22. Get the longest word in a specified direction
 let locateLongestWordInADirection
     (st: GameState.state)
@@ -303,7 +372,11 @@ let constructDictTrie (st: state) (wordAcc: string) (startCoord: coord) (directi
             ([ for c in wordAcc do
                    c ])
 
+
     locateLongestWordInADirection st wordAcc currDict (calcCoordUsingLength wordLength startCoord direction) direction
+
+
+
 
 // 24. Used in conjunction with M.25 to locate a string word in some given direction:
 let traverseToLocateWords (st: state) (initCoord: coord) (initDir: Direction) : string option =
@@ -367,15 +440,27 @@ let collectAllTheWordsWeCanPlay (st: state) : (string * (coord * Direction)) lis
             let (c, d) = (snd x)
             let locatedWord = constructDictTrie st s c d
 
+            // Debugging: Print the word and its validation status
+            printfn "Checking word: %s at %A direction %A" locatedWord c d
+            printfn "Is word in dictionary? %b" (isWord st locatedWord)
+            printfn "Is word valid on board? %b" (isWordValidOnBoard st locatedWord c d)
+
             let accumulatedRes =
-                if locatedWord.Length > 0 && (isWord st locatedWord) then
+                if
+                    locatedWord.Length > 0
+                    && (isWord st locatedWord)
+                    && isWordValidOnBoard st locatedWord c d
+                then
+                    printfn "Word added: %s" locatedWord
                     (locatedWord, (c, d)) :: acc
                 else
+                    printfn "Word rejected: %s" locatedWord
                     acc
 
             wordsBotMightPlayHelper xs accumulatedRes
 
     wordsBotMightPlayHelper gatheredWordsCurrentlyOnBoard []
+
 
 
 // 28. We filter through to find the longest playable word, and from this collectively go through all the
@@ -420,7 +505,7 @@ let test (st: state) =
             // printfn "Current word: %s, neighbors: %d" currS currPieceNumNeighbors
 
             // let acc' =
-            //     if currPieceNumNeighbors < accPieceNumNeighbors then
+            //     if currPieceNumNeighbors > accPieceNumNeighbors then
             //         x
             //     else
             //         acc

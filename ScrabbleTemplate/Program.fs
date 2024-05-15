@@ -25,7 +25,7 @@ let main argv =
     System.Console.Clear()
 
     let board = ScrabbleUtil.StandardBoard.standardBoard ()
-    //    let board      = ScrabbleUtil.InfiniteBoard.infiniteBoard ()
+    //let board = ScrabbleUtil.InfiniteBoard.infiniteBoard ()
 
     //    let board      = ScrabbleUtil.RandomBoard.randomBoard ()
     //    let board      = ScrabbleUtil.RandomBoard.randomBoardSeed (Some 42)
@@ -49,7 +49,7 @@ let main argv =
 
     // let players =
     //     [ ("ScrabBoyz", dictionary, ScrabBoyz.Scrabble.startGame)
-    //       ("srabasds", dictionary, ScrabBoyz.Scrabble.startGame) ]
+    //       ("srabasds", dictionary, Oxyphenbutazone.Scrabble.startGame) ]
     let players = [ ("ScrabBoyz", dictionary, ScrabBoyz.Scrabble.startGame) ]
     // let players = [ ("ScrabBoyz", dictionary, ScrabBoyz.Scrabble.startGame) ( "ScrabBoyz2" dictionary,  ScrabBoyz.Scrabble.startGame ) ]
 
