@@ -305,7 +305,6 @@ module internal PlayMaker
                 let (currS, (currCoor, _)) = x
                 let (accS, (accCoor, _)) = acc
                 
-                
                 // If we place horizontally, we need to consider NE and SE
                 // If we place vertically, we need to consider SE and SW
                 
@@ -313,6 +312,7 @@ module internal PlayMaker
                 let accPieceNumNeighbors  = countNumNeighbours (checkAllNeighbours st accCoor)
                 
                 let acc' = if currPieceNumNeighbors < accPieceNumNeighbors then x else acc
+                
                 getLongestWordHelper acc' xs
         
         getLongestWordHelper ("", ((0,0), Center)) (collectAllTheWordsWeCanPlay st)
@@ -375,3 +375,5 @@ module internal PlayMaker
             | true -> acc + 1
             | false -> acc
         ) 0 handAsChar
+        
+    

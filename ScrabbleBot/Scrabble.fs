@@ -50,14 +50,59 @@ module State =
     }
     
     //////////////////////////////// NEW FUNCTIONS USED TO HANDLE STATE /////////////////////////////////////////////////
-    let insertMovesIntoState (ms : (coord * (uint32 * (char * int))) list) (pob : Map<coord, (char * int)>) =
+    let addMoveToState (play : (coord * (uint32 * (char * int))) list) (pob : Map<coord, (char * int)>) =
         let rec aux (moves : (coord * (uint32 * (char * int))) list) (acc : Map<coord, (char * int)>) =
             match moves with
             | [] -> acc
             | (coor, (_, (cVal, pVal)))::xs ->
                 aux xs (acc |> Map.add coor (cVal, pVal))
     
-        aux ms pob
+        aux play pob
+        
+    let addMoveToFakeState (st : state) (plannedPlay : (coord * (uint32 * (char * int))) list) : state =
+        let rec aux (acc : state) (moves : (coord * (uint32 * (char * int))) list) : state =
+            match moves with
+            | [] -> acc
+            | (coor, (_, (cVal, pVal)))::xs ->
+                
+                let st' =
+                    {
+                        st with
+                            piecesOnBoard = st.piecesOnBoard |> Map.add coor (cVal, pVal)
+                    }
+                
+                aux st xs
+        aux st plannedPlay 
+        
+    let preemptiveInsert (st : state) (words : (string * (Coordinate * Direction)) list) =
+        
+        List.fold (fun (acc : string * (Coordinate * Direction)) (curr : string * (Coordinate * Direction)) ->
+                let parsedMove = parseBotMove st curr
+                let newState   = addMoveToFakeState st parsedMove 
+                let wordsOTB   = gatherWordsOnTheBoard newState
+                
+                let isWordValidOnBoard = 
+                    let rec aux (accValid : bool) (wotb : (string * (Coordinate * Direction)) list) =
+                        match wotb with
+                        | []    -> accValid
+                        | x::xs ->
+                            let (s, (_, _)) = x
+                        
+                            match accValid with
+                            | true ->
+                                if s.Length = 1         then (aux true xs)
+                                elif isWord st s        then (aux true xs)
+                                else                         false
+                            | false ->
+                                false
+                
+                    aux true wordsOTB
+                
+                if isWordValidOnBoard then
+                    curr
+                else
+                    acc
+            ) ("", ((0,0), Center)) words
         
         
     let changeTurn (st: state) numPlayers =
@@ -67,14 +112,16 @@ module State =
             st.turnCounter + 1u
             
     let sendMoveToServer (cstream : Stream) (moveToPlay : (coord * (uint32 * (char * int))) list) =
+        printf "Move to play size: %i" moveToPlay.Length
+        
         if moveToPlay.IsEmpty then
-                // TODO :: Make it change hand
-                // if (vowelCount st) < 1 then
-                //     send cstream (SMChange (toList st.hand))
-                // else
-                    send cstream (SMPass)
-            else
-                send cstream (SMPlay moveToPlay)
+            // TODO :: Make it change hand
+            // if (vowelCount st) < 1 then
+            //     send cstream (SMChange (toList st.hand))
+            // else
+            send cstream (SMPass)
+        else
+            send cstream (SMPlay moveToPlay)
             
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         
@@ -102,7 +149,7 @@ module Scrabble =
                     
                     // printParseMove(longestParsedWord)
                     
-                    printf "\n\nLength of move :: %s\n" (longestWordOnFirstTurn)
+                    //printf "\n\nLength of move :: %s\n" (longestWordOnFirstTurn)
                     
                     printAllWordsWeCouldPlay (collectAllTheWordsWeCanPlay st)
                     
@@ -111,17 +158,22 @@ module Scrabble =
                 else
                     let longestWord = test st
                     
-                    // forcePrint (sprintf "\n================\nLongest word we can play :: %s\n Longest word coor and dir :: %A\n================\n" (fst longestWord) (snd longestWord))
+                    forcePrint (sprintf "\n================\nLongest word we can play :: %s\n Longest word coor and dir :: %A\n================\n" (fst longestWord) (snd longestWord))
                     
                     printAllWordsWeCouldPlay (collectAllTheWordsWeCanPlay st)
                     
                     let longestParsedWord = parseBotMove st longestWord
 
-                    printf "\n\nLength of move :: %s\n" (fst longestWord)
+                    //printf "\n\nLength of move :: %s\n" (fst longestWord)
                     
                     sendMoveToServer cstream longestParsedWord
                     
-                    
+            // TODO ::
+            // We need to have a pre-placement checker, which checks diagonally in the direction it
+            // plans to go.
+            
+            // We could say, if a word starts a coordinate 'X' and this 'X' has a diagonal piece to the right
+            // then we know there is a word.
                     
             //////////////////////////////////////////////////////////////////////////////////
             
@@ -147,7 +199,7 @@ module Scrabble =
                     |> fun hand -> List.fold (fun acc (x, _) -> MultiSet.add x 1u acc) hand newPieces
                                 
                 // 02. Update the board:
-                let updatedBoard = insertMovesIntoState ms st.piecesOnBoard
+                let updatedBoard = addMoveToState ms st.piecesOnBoard
                 
                 // 03. Only add the necessary parts to the newly updated state:
                 let st' =
@@ -162,7 +214,7 @@ module Scrabble =
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
                 
-                let updatedBoard = insertMovesIntoState ms st.piecesOnBoard
+                let updatedBoard = addMoveToState ms st.piecesOnBoard
                 
                 // forcePrint(sprintf "\n!Opponent played and the board looks as follows %A !\n" updatedBoard)
                 

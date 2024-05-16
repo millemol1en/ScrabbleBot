@@ -24,8 +24,8 @@ let main argv =
     System.Console.ForegroundColor <- System.ConsoleColor.Black
     System.Console.Clear()
 
-    let board        = ScrabbleUtil.StandardBoard.standardBoard ()
-//    let board      = ScrabbleUtil.InfiniteBoard.infiniteBoard ()
+    // let board        = ScrabbleUtil.StandardBoard.standardBoard ()
+    let board      = ScrabbleUtil.InfiniteBoard.infiniteBoard ()
 
 //    let board      = ScrabbleUtil.RandomBoard.randomBoard ()
 //    let board      = ScrabbleUtil.RandomBoard.randomBoardSeed (Some 42)
@@ -48,8 +48,10 @@ let main argv =
     let (dictionary, time) =
         time (fun () -> ScrabbleUtil.Dictionary.mkDict words dictAPI)
 
-    let players    = [("ScrabBoyz", dictionary, ScrabBoyz.Scrabble.startGame); ("Oxyphenbutazone", dictionary, Oxyphenbutazone.Scrabble.startGame)] 
+    let players    = [("ScrabBoyz1", dictionary, ScrabBoyz.Scrabble.startGame);] 
 
+    
+    
     //let players = spawnMultiples "OxyphenButazone" dictionary Oxyphenbutazone.Scrabble.startGame 2
 
     do ScrabbleServer.Comm.startGame 
