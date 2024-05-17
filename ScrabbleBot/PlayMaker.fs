@@ -236,6 +236,9 @@ let isTileEmpty st (x, y) =
     | Some _ -> false
     | None -> true
 
+// Ensure your existing definitions are used correctly
+// The dirToCoord and diagToCoord functions are assumed to be defined as you mentioned
+
 // Helper function to check if the move is within the board boundaries
 let isWithinBoundaries (x, y) dir wordLength =
     let (dx, dy) = dirToCoord dir
@@ -260,29 +263,60 @@ let isAdjacentToExistingWord st (x, y) dir (word: string) =
 
     wordCoords |> List.exists isAdjacent
 
+// Helper function to extract a word in a given direction
+let extractWord (board: Map<(int * int), (char * int)>) (startCoord: (int * int)) (direction: (int * int)) =
+    let rec collectWord coord acc =
+        match Map.tryFind coord board with
+        | Some tile -> collectWord (fst coord + fst direction, snd coord + snd direction) (tile :: acc)
+        | None -> List.rev acc
 
-// Modified isWordValidOnBoard function with additional checks
-let isWordValidOnBoard st word (x, y) dir =
+    collectWord startCoord []
+
+// Function to get new words formed by placing a word
+let getNewWords (board: Map<(int * int), (char * int)>) (placedTiles: ((int * int) * (char * int)) list) =
+    let horizontalWords =
+        placedTiles
+        |> List.collect (fun ((x, y), _) -> [ extractWord board (x, y) (1, 0) ])
+
+    let verticalWords =
+        placedTiles
+        |> List.collect (fun ((x, y), _) -> [ extractWord board (x, y) (0, 1) ])
+
+    horizontalWords @ verticalWords
+
+// Main function to validate the move and all adjacent words
+let isWordValidOnBoard (st: state) (word: string) (x, y) (dir: Direction) =
     let rec helper word (x, y) dir =
         match word with
         | "" -> true // End of the word reached, no more letters to check
         | _ ->
-            match st.piecesOnBoard.TryFind(x, y) with
+            match st.piecesOnBoard.TryFind((x, y)) with
             | Some(c, _) when c = word.[0] ->
                 // The tile contains the expected character, continue with the rest of the word
-                helper word.[1..] ((x, y) .+. dirToCoord dir) dir
+                helper word.[1..] ((x + fst (dirToCoord dir), y + snd (dirToCoord dir))) dir
             | None ->
                 // The tile is empty, check if it's within boundaries and adjacent to existing words
                 let withinBoundaries = isWithinBoundaries (x, y) dir word.Length
-                let adjacentToExistingWord = isAdjacentToExistingWord st (x, y) dir
-                // Debugging: Log the status of boundary and adjacency checks
-                printfn "Within boundaries? %b" withinBoundaries
-                printfn "Adjacent to existing word? %b" (adjacentToExistingWord word)
-                withinBoundaries && adjacentToExistingWord word
+                let adjacentToExistingWord = isAdjacentToExistingWord st (x, y) dir word
+                withinBoundaries && adjacentToExistingWord
             | _ -> false // The tile is not valid for placement
 
-    helper word (x, y) dir
+    let primaryWordValid = helper word (x, y) dir
 
+    // Extract and validate new words formed by placing the primary word
+    let placedTiles =
+        [ for i in 0 .. word.Length - 1 -> ((x + i * fst (dirToCoord dir), y + i * snd (dirToCoord dir)), (word.[i], 1)) ]
+
+    let newWords = getNewWords st.piecesOnBoard placedTiles
+
+    // let allWordsValid =
+    //     newWords
+    //     |> List.forall (fun wordTiles ->
+    //         let wordString = wordTiles |> List.map fst |> List.toArray |> System.String
+    //         isWord st wordString)
+
+    // primaryWordValid && allWordsValid
+    primaryWordValid
 
 // 22. Get the longest word in a specified direction
 let locateLongestWordInADirection
@@ -379,71 +413,119 @@ let constructDictTrie (st: state) (wordAcc: string) (startCoord: coord) (directi
 
 
 // 24. Used in conjunction with M.25 to locate a string word in some given direction:
+open System.Text
+
+// Assume state and other types (Direction, coord, etc.) are already defined.
+
 let traverseToLocateWords (st: state) (initCoord: coord) (initDir: Direction) : string option =
+    // Helper function to traverse in the given direction
     let rec traverseInDirection
         (piecesOnBoard: Map<coord, (char * int)>)
         (currCoord: coord)
         (currDir: Direction)
         (accWord: StringBuilder)
-        =
-        // We step in the specified direction to locate the necessary word...
-        let stepCoordinate = (assimilateCoords (dirToCoord currDir) currCoord Add)
+        : StringBuilder =
+        let stepCoordinate = assimilateCoords (dirToCoord currDir) currCoord Add
 
         match (piecesOnBoard.TryFind stepCoordinate) with
-        | Some(c, _) -> traverseInDirection piecesOnBoard stepCoordinate currDir (accWord ++ c)
-        | None -> accWord.ToString()
+        | Some(c, _) ->
+            accWord.Append(c) |> ignore
+            traverseInDirection piecesOnBoard stepCoordinate currDir accWord
+        | None -> accWord
 
+    // Function to reverse the direction
+    let reverseDirection dir =
+        match dir with
+        | Horizontal -> Vertical
+        | Vertical -> Horizontal
+        | _ -> failwith "Invalid direction"
 
-    let stepCoordinate = (assimilateCoords (dirToCoord initDir) initCoord Sub)
+    // Initial character at the starting coordinate
+    let (cVal, _) = Map.find initCoord st.piecesOnBoard
 
-    match (st.piecesOnBoard.TryFind stepCoordinate) with
-    | Some _ -> None // Case #1 :: Nothing, so in our Map.fold, we keep going
-    | None -> // Case #2 :: Something! So we now reverse and go forwards to locate the entire word
-        let (cVal, _) = Map.find initCoord st.piecesOnBoard
+    // Traverse in the reverse direction to get the backward part of the word
+    let backwardWord =
+        traverseInDirection st.piecesOnBoard initCoord (reverseDirection initDir) (StringBuilder())
 
-        Some(traverseInDirection st.piecesOnBoard initCoord initDir (StringBuilder() ++ cVal))
+    // Traverse in the forward direction to get the forward part of the word
+    let forwardWord =
+        traverseInDirection st.piecesOnBoard initCoord initDir (StringBuilder().Append(cVal))
+
+    // Combine the backward and forward words
+    let combinedWord = backwardWord.Append(forwardWord.ToString()).ToString()
+
+    // Return the combined word as an option
+    Some combinedWord
+
 
 // 25. In this method, we construct our list of words, going in a particular direction and assimilating all
 //     the strings - this will include all playable words. We will later then filter out which are actually
 //     playable and which are not:
 let assimilatePieces (st: state) (direction: Direction) =
     Map.fold
-        (fun (accWordList: (string * (coord * Direction)) list) (coordinate: coord) ((character: char), _) ->
+        (fun accWordList (coordinate: coord) ((character: char), _) ->
             match (traverseToLocateWords st coordinate direction) with
             | Some locatedWord -> (locatedWord, (coordinate, direction)) :: accWordList
-            | None -> accWordList
-
-        )
+            | None -> accWordList)
         []
         st.piecesOnBoard
+
 
 // 26. Along with functions '24' and '25', we traverse in the core directions playable directions
 //     'horizontally' or 'vertically' - to try and find playable words:
 let gatherWordsOnTheBoard (st: state) =
-    let wordsGoingUpToDown = assimilatePieces st Direction.Horizontal
-    let wordsGoingLeftToRight = assimilatePieces st Direction.Vertical
+    let wordsGoingUpToDown = assimilatePieces st Horizontal
+    let wordsGoingLeftToRight = assimilatePieces st Vertical
 
     wordsGoingUpToDown @ wordsGoingLeftToRight
 
+
 // 27. Collect all the possible words we can play based on what we have on the board:
+// let collectAllTheWordsWeCanPlay (st: state) : (string * (coord * Direction)) list =
+//     let gatheredWordsCurrentlyOnBoard = gatherWordsOnTheBoard st
+
+//     let rec wordsBotMightPlayHelper
+//         (locatedWordsOnBoard: (string * (coord * Direction)) list)
+//         (acc: (string * (coord * Direction)) list)
+//         =
+//         match locatedWordsOnBoard with
+//         | [] -> acc
+//         | x :: xs ->
+//             let s = (fst x)
+//             let (c, d) = (snd x)
+//             let locatedWord = constructDictTrie st s c d
+
+//             // Debugging: Print the word and its validation status
+//             printfn "Checking word: %s at %A direction %A" locatedWord c d
+//             printfn "Is word in dictionary? %b" (isWord st locatedWord)
+//             printfn "Is word valid on board? %b" (isWordValidOnBoard st locatedWord c d)
+
+//             let accumulatedRes =
+//                 if
+//                     locatedWord.Length > 0
+//                     && (isWord st locatedWord)
+//                     && isWordValidOnBoard st locatedWord c d
+//                 then
+//                     printfn "Word added: %s" locatedWord
+//                     (locatedWord, (c, d)) :: acc
+//                 else
+//                     printfn "Word rejected: %s" locatedWord
+//                     acc
+
+//             wordsBotMightPlayHelper xs accumulatedRes
+
+//     wordsBotMightPlayHelper gatheredWordsCurrentlyOnBoard []
+
 let collectAllTheWordsWeCanPlay (st: state) : (string * (coord * Direction)) list =
     let gatheredWordsCurrentlyOnBoard = gatherWordsOnTheBoard st
 
-    let rec wordsBotMightPlayHelper
-        (locatedWordsOnBoard: (string * (coord * Direction)) list)
-        (acc: (string * (coord * Direction)) list)
-        =
+    let rec wordsBotMightPlayHelper locatedWordsOnBoard acc =
         match locatedWordsOnBoard with
         | [] -> acc
         | x :: xs ->
-            let s = (fst x)
-            let (c, d) = (snd x)
+            let s = fst x
+            let (c, d) = snd x
             let locatedWord = constructDictTrie st s c d
-
-            // Debugging: Print the word and its validation status
-            printfn "Checking word: %s at %A direction %A" locatedWord c d
-            printfn "Is word in dictionary? %b" (isWord st locatedWord)
-            printfn "Is word valid on board? %b" (isWordValidOnBoard st locatedWord c d)
 
             let accumulatedRes =
                 if
@@ -451,15 +533,14 @@ let collectAllTheWordsWeCanPlay (st: state) : (string * (coord * Direction)) lis
                     && (isWord st locatedWord)
                     && isWordValidOnBoard st locatedWord c d
                 then
-                    printfn "Word added: %s" locatedWord
                     (locatedWord, (c, d)) :: acc
                 else
-                    printfn "Word rejected: %s" locatedWord
                     acc
 
             wordsBotMightPlayHelper xs accumulatedRes
 
     wordsBotMightPlayHelper gatheredWordsCurrentlyOnBoard []
+
 
 
 
@@ -469,52 +550,75 @@ let collectAllTheWordsWeCanPlay (st: state) : (string * (coord * Direction)) lis
 //     Currently, we discard a word in replacement for a longer "better" word, but this ruins our chances to
 //     actually play a word we are allowed to put down:
 let getLongestWord (st: state) =
-    let rec getLongestWordHelper
-        (acc: (string * (coord * Direction)))
-        (listOfPlayableWords: (string * (coord * Direction)) list)
-        =
+    let rec getLongestWordHelper acc listOfPlayableWords =
         match listOfPlayableWords with
         | [] -> acc
         | x :: xs ->
-            let (currS, (_, _)) = x
-            let (accS, (_, _)) = acc
+            let (currS, _) = x
+            let (accS, _) = acc
 
             let acc' = if String.length currS > String.length accS then x else acc
             getLongestWordHelper acc' xs
 
     getLongestWordHelper ("", ((0, 0), Center)) (collectAllTheWordsWeCanPlay st)
 
+
+// let test (st: state) =
+//     let rec getLongestWordHelper
+//         (acc: (string * (coord * Direction)))
+//         (listOfPlayableWords: (string * (coord * Direction)) list)
+//         =
+//         match listOfPlayableWords with
+//         | [] -> acc
+//         | x :: xs ->
+//             let (currS, (currCoor, _)) = x
+//             let (accS, (accCoor, _)) = acc
+
+//             // If we place horizontally, we need to consider NE and SE
+//             // If we place vertically, we need to consider SE and SW
+
+//             let currPieceNumNeighbors = countNumNeighbours (checkAllNeighbours st currCoor)
+//             let accPieceNumNeighbors = countNumNeighbours (checkAllNeighbours st accCoor)
+
+//             // Print the current word and number of neighbors
+//             // printfn "Current word: %s, neighbors: %d" currS currPieceNumNeighbors
+
+//             // let acc' =
+//             //     if currPieceNumNeighbors > accPieceNumNeighbors then
+//             //         x
+//             //     else
+//             //         acc
+
+//             let acc' = if currS.Length > accS.Length then x else acc
+
+//             getLongestWordHelper acc' xs
+
+// // Get all playable words and print the number of words
+// let allWords = collectAllTheWordsWeCanPlay st
+// printfn "Number of playable words: %d" (List.length allWords)
+
+// getLongestWordHelper ("", ((0, 0), Center)) allWords
+
 let test (st: state) =
-    let rec getLongestWordHelper
-        (acc: (string * (coord * Direction)))
-        (listOfPlayableWords: (string * (coord * Direction)) list)
-        =
+    let rec getLongestWordHelper acc listOfPlayableWords =
         match listOfPlayableWords with
         | [] -> acc
         | x :: xs ->
             let (currS, (currCoor, _)) = x
             let (accS, (accCoor, _)) = acc
 
-            // If we place horizontally, we need to consider NE and SE
-            // If we place vertically, we need to consider SE and SW
-
             let currPieceNumNeighbors = countNumNeighbours (checkAllNeighbours st currCoor)
             let accPieceNumNeighbors = countNumNeighbours (checkAllNeighbours st accCoor)
 
-            // Print the current word and number of neighbors
-            // printfn "Current word: %s, neighbors: %d" currS currPieceNumNeighbors
-
-            // let acc' =
-            //     if currPieceNumNeighbors > accPieceNumNeighbors then
-            //         x
-            //     else
-            //         acc
-
-            let acc' = if currS.Length > accS.Length then x else acc
+            // let acc' = if currS.Length > accS.Length then x else acc
+            let acc' =
+                if currPieceNumNeighbors > accPieceNumNeighbors then
+                    x
+                else
+                    acc
 
             getLongestWordHelper acc' xs
 
-    // Get all playable words and print the number of words
     let allWords = collectAllTheWordsWeCanPlay st
     printfn "Number of playable words: %d" (List.length allWords)
 
