@@ -288,7 +288,6 @@ let isWordValidOnBoard st word (x, y) dir =
 let locateLongestWordInADirection
     (st: GameState.state)
     (initWord: string)
-    x
     (initDict: Dict)
     (initCoord: coord)
     (initDir: Direction)
