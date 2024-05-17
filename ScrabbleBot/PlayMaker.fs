@@ -186,7 +186,6 @@ let isWord (st: state) (word: string) =
     ScrabbleUtil.Dictionary.lookup word st.dict
 // Refactored generateAdjacentWords function
 let generateAdjacentWords st (x, y) character dir =
-    // Define the opposite direction for building words in the opposite direction
     let oppositeDirection =
         function
         | North -> South
@@ -211,6 +210,8 @@ let generateAdjacentWords st (x, y) character dir =
         | Vertical -> [ (x, y) .+. diagToCoord East; (x, y) .+. diagToCoord West ]
         | _ -> failwith "Invalid main direction"
 
+    printfn "Checking adjacent coordinates for (%d, %d) in direction %A: %A" x y dir adjCoords
+
     // Generate words from adjacent coordinates
     let adjWords =
         adjCoords
@@ -227,8 +228,16 @@ let generateAdjacentWords st (x, y) character dir =
             let word2 = buildWordFromCoord (assimilateCoords coord (diagToCoord dir2) Add) dir2
             [ word1; word2 ])
         |> List.filter (fun word -> word.Length > 1) // Filter out single characters
+
+    printfn "Generated adjacent words for (%d, %d) in direction %A: %A" x y dir adjWords
+
     // Filter out words that are not in the dictionary
-    List.filter (isWord st) adjWords
+    let validWords = List.filter (isWord st) adjWords
+
+    printfn "Valid adjacent words for (%d, %d) in direction %A: %A" x y dir validWords
+
+    validWords
+
 
 // Helper function to check if a tile is empty
 let isTileEmpty st (x, y) =
@@ -481,51 +490,24 @@ let gatherWordsOnTheBoard (st: state) =
 
 
 // 27. Collect all the possible words we can play based on what we have on the board:
-// let collectAllTheWordsWeCanPlay (st: state) : (string * (coord * Direction)) list =
-//     let gatheredWordsCurrentlyOnBoard = gatherWordsOnTheBoard st
-
-//     let rec wordsBotMightPlayHelper
-//         (locatedWordsOnBoard: (string * (coord * Direction)) list)
-//         (acc: (string * (coord * Direction)) list)
-//         =
-//         match locatedWordsOnBoard with
-//         | [] -> acc
-//         | x :: xs ->
-//             let s = (fst x)
-//             let (c, d) = (snd x)
-//             let locatedWord = constructDictTrie st s c d
-
-//             // Debugging: Print the word and its validation status
-//             printfn "Checking word: %s at %A direction %A" locatedWord c d
-//             printfn "Is word in dictionary? %b" (isWord st locatedWord)
-//             printfn "Is word valid on board? %b" (isWordValidOnBoard st locatedWord c d)
-
-//             let accumulatedRes =
-//                 if
-//                     locatedWord.Length > 0
-//                     && (isWord st locatedWord)
-//                     && isWordValidOnBoard st locatedWord c d
-//                 then
-//                     printfn "Word added: %s" locatedWord
-//                     (locatedWord, (c, d)) :: acc
-//                 else
-//                     printfn "Word rejected: %s" locatedWord
-//                     acc
-
-//             wordsBotMightPlayHelper xs accumulatedRes
-
-//     wordsBotMightPlayHelper gatheredWordsCurrentlyOnBoard []
-
 let collectAllTheWordsWeCanPlay (st: state) : (string * (coord * Direction)) list =
     let gatheredWordsCurrentlyOnBoard = gatherWordsOnTheBoard st
 
-    let rec wordsBotMightPlayHelper locatedWordsOnBoard acc =
+    let rec wordsBotMightPlayHelper
+        (locatedWordsOnBoard: (string * (coord * Direction)) list)
+        (acc: (string * (coord * Direction)) list)
+        =
         match locatedWordsOnBoard with
         | [] -> acc
         | x :: xs ->
-            let s = fst x
-            let (c, d) = snd x
+            let s = (fst x)
+            let (c, d) = (snd x)
             let locatedWord = constructDictTrie st s c d
+
+            // Debugging: Print the word and its validation status
+            printfn "Checking word: %s at %A direction %A" locatedWord c d
+            printfn "Is word in dictionary? %b" (isWord st locatedWord)
+            printfn "Is word valid on board? %b" (isWordValidOnBoard st locatedWord c d)
 
             let accumulatedRes =
                 if
@@ -533,13 +515,40 @@ let collectAllTheWordsWeCanPlay (st: state) : (string * (coord * Direction)) lis
                     && (isWord st locatedWord)
                     && isWordValidOnBoard st locatedWord c d
                 then
+                    printfn "Word added: %s" locatedWord
                     (locatedWord, (c, d)) :: acc
                 else
+                    printfn "Word rejected: %s" locatedWord
                     acc
 
             wordsBotMightPlayHelper xs accumulatedRes
 
     wordsBotMightPlayHelper gatheredWordsCurrentlyOnBoard []
+
+// let collectAllTheWordsWeCanPlay (st: state) : (string * (coord * Direction)) list =
+//     let gatheredWordsCurrentlyOnBoard = gatherWordsOnTheBoard st
+
+//     let rec wordsBotMightPlayHelper locatedWordsOnBoard acc =
+//         match locatedWordsOnBoard with
+//         | [] -> acc
+//         | x :: xs ->
+//             let s = fst x
+//             let (c, d) = snd x
+//             let locatedWord = constructDictTrie st s c d
+
+//             let accumulatedRes =
+//                 if
+//                     locatedWord.Length > 0
+//                     && (isWord st locatedWord)
+//                     && isWordValidOnBoard st locatedWord c d
+//                 then
+//                     (locatedWord, (c, d)) :: acc
+//                 else
+//                     acc
+
+//             wordsBotMightPlayHelper xs accumulatedRes
+
+//     wordsBotMightPlayHelper gatheredWordsCurrentlyOnBoard []
 
 
 
