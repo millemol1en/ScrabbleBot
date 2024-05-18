@@ -340,6 +340,23 @@ module internal PlayMaker
                 
         ) ("", ((0,0), Center)) (listOfAllWordsWeCanPlay st)
     
+    // let longestWordWeCanPlay (st : state) =
+//     let words = listOfAllWordsWeCanPlay st
+
+//     let isWordValidAsync (tempBoard: (string * (Coordinate * Direction)) list) (st: state) (s: string, (c, d)): Async<bool> = async {
+//         let sVal =
+//             List.fold (fun (sVal: bool) (s: string, (c, d)) ->
+//                 match sVal with
+//                 | true ->
+//                     if s.Length = 1 then true
+//                     elif (isWord st s) then true
+//                     else false
+//                 | false -> false
+//             ) true tempBoard
+//         return sVal
+//     }
+    
+    
     // 31. Print statement to double check the parsed syntax when debugging:
     let printParseMove (parsedMove : ((int * int) * (uint32 * (char * int))) list) =
         parsedMove |> List.iter (printf "Command :: %A\n")
