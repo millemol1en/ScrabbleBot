@@ -158,9 +158,6 @@ module Scrabble =
                 
                 aux st'
             | RCM (CMPlayFailed (pid, ms)) ->
-                (* Failed play. Update your state *)
-                
-                // forcePrint (sprintf "Attempted to play: %A" ms)
                 
                 let st' =
                     {
@@ -186,7 +183,8 @@ module Scrabble =
                     List.fold (fun acc (x, y) ->
                         MultiSet.add x y acc) MultiSet.empty newPieces
                 
-                
+                printf "\n\n UPDATED HAND PIECES NUM: %i\n\n" (MultiSet.size updatedHand)
+
                 let st' =
                     {
                       st with
