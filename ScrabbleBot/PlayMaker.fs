@@ -160,7 +160,7 @@ module internal PlayMaker
                     let piecesLeftInHand =
                         match (piecesOnBoard.TryFind coordinate) with
                         | Some _ -> hand
-                        | None   -> (MultiSet.removeSingle (charToUint32 character) hand)
+                        | None   -> removeSingle (charToUint32 character) hand  // As there is no piece on the board, take it from our hand
                     
                     let newCoordinate = (assimilateCoords coordinate (dirToCoord dir) Add)
                     
@@ -196,8 +196,8 @@ module internal PlayMaker
         locateLongestWordInADirection st wordAcc currDict (calcCoordUsingLength wordLength startCoord direction) direction
         
     // 24. Used in conjunction with M.25 to locate a string word in some given direction:
-    let traverseToLocateWords (st : state) (initCoord : coord) (initDir : Direction) : string option =
-        let rec traverseInDirection (piecesOnBoard : Map<coord, (char * int)>) (currCoord : coord) (currDir : Direction) (accWord : StringBuilder) =
+    let traverseToLocateWords (st : state) (initCoord : Coordinate) (initDir : Direction) : string option =
+        let rec traverseInDirection (piecesOnBoard : Map<coord, (char * int)>) (currCoord : Coordinate) (currDir : Direction) (accWord : StringBuilder) =
             // We step in the specified direction to locate the necessary word...
             let stepCoordinate = (assimilateCoords (dirToCoord currDir) currCoord Add)
             
@@ -206,7 +206,6 @@ module internal PlayMaker
                 traverseInDirection piecesOnBoard stepCoordinate currDir (accWord ++ c)
             | None ->
                 accWord.ToString()
-        
         
         let stepCoordinate = (assimilateCoords (dirToCoord initDir) initCoord Sub)
         
@@ -222,7 +221,7 @@ module internal PlayMaker
     //     playable and which are not:
     let assimilatePieces (st : state) (direction : Direction) =
         Map.fold (
-            fun (accWordList : (string * (coord * Direction)) list) (coordinate : coord) ((character : char), _) ->
+            fun (accWordList : (string * (Coordinate * Direction)) list) (coordinate : Coordinate) ((character : char), _) ->
                 match (traverseToLocateWords st coordinate direction) with
                 | Some locatedWord ->
                     (locatedWord, (coordinate, direction)) :: accWordList
@@ -239,47 +238,6 @@ module internal PlayMaker
                 
         wordsGoingUpToDown @ wordsGoingLeftToRight
         
-    // 27. Collect all the possible words we can play based on what we have on the board:
-    let collectAllTheWordsWeCanPlay (st : state) : (string * (coord * Direction)) list =                
-        let gatheredWordsCurrentlyOnBoard = gatherWordsOnTheBoard st
-        
-        let rec wordsBotMightPlayHelper (locatedWordsOnBoard : (string * (coord * Direction)) list) (acc : (string * (coord * Direction)) list) =
-            match locatedWordsOnBoard with
-            | [] -> acc
-            | x::xs ->
-                let s = (fst x)
-                let (c, d) = (snd x)
-                let locatedWord = constructDictTrie st s c d 
-                
-                let accumulatedRes =
-                    if locatedWord.Length > 0 && (isWord st locatedWord) then
-                        (locatedWord, (c, d)) :: acc
-                    else acc
-                                        
-                wordsBotMightPlayHelper xs accumulatedRes 
-            
-        wordsBotMightPlayHelper gatheredWordsCurrentlyOnBoard []
-        
-        
-    // 28. We filter through to find the longest playable word, and from this collectively go through all the
-    //     previous methods, performing the necessary word gathering, tile checking, etc...
-    //     This method needs an additional safe guard to make sure it takes into consideration a playable word.
-    //     Currently, we discard a word in replacement for a longer "better" word, but this ruins our chances to
-    //     actually play a word we are allowed to put down:
-    let getLongestWord (st : state) =
-        let rec getLongestWordHelper (acc : (string * (coord * Direction))) (listOfPlayableWords : (string * (coord * Direction)) list) =
-            match listOfPlayableWords with
-            | []    -> acc
-            | x::xs ->
-                let (currS, (_, _)) = x
-                let (accS, (_, _)) = acc
-                
-                let acc' = if String.length currS > String.length accS then x else acc
-                getLongestWordHelper acc' xs
-        
-        getLongestWordHelper ("", ((0,0), Center)) (collectAllTheWordsWeCanPlay st)
-           
-    
     
     // 29. Our play is on the first turn.
     //     In this case, the board is clean and a play must be made in the center of the board.
@@ -290,8 +248,8 @@ module internal PlayMaker
     
     // 30. Here we parse the string into a list of moves the server can be given to perform our play.
     //     The coord and Direction indicate where we start and where we are heading:
-    let parseBotMove (st : state) ((s, (c, d)) : string * (coord * Direction)) : ((int * int) * (uint32 * (char * int))) list =
-        let rec parseBotMoveHelper (commandAcc : ((int * int) * (uint32 * (char * int))) list) (cList : char list) (coordinate : coord) (direction : Direction) =
+    let parseBotMove (st : state) ((s, (c, d)) : string * (Coordinate * Direction)) : ((int * int) * (uint32 * (char * int))) list =
+        let rec parseBotMoveHelper (commandAcc : ((int * int) * (uint32 * (char * int))) list) (cList : char list) (coordinate : Coordinate) (direction : Direction) =
             match cList with
             | []    -> List.rev commandAcc
             | x::xs -> 
@@ -311,7 +269,112 @@ module internal PlayMaker
                 
         parseBotMoveHelper [] ([for c' in s do c']) c d
         
+    // TODO :: Change to style below - me like more...
+    let createTempState (st:state) (moves:list<coord * (uint32 * (char * int))>) =
+        List.fold (fun acc move ->
+            let (coord, (_,(char, charPoints))) = move
+            let newPlayedLetters = acc.piecesOnBoard |> Map.add coord (char, charPoints)
+            let st' =
+                {
+                    st with
+                        piecesOnBoard = newPlayedLetters
+                }
+            st'
+        ) st moves
+    
+    
+    let createTempState2 (st : state) (plannedPlay : (Coordinate * (uint32 * (char * int))) list) : state =
+        let rec aux (acc : state) (moves : (Coordinate * (uint32 * (char * int))) list) : state =
+            match moves with
+            | [] -> acc
+            | (coor, (_, (cVal, pVal)))::xs ->
+                
+                let st' =
+                    {
+                        st with
+                            piecesOnBoard = st.piecesOnBoard |> Map.add coor (cVal, pVal)
+                    }
+                aux st' xs
+                
+        aux st plannedPlay
+    
+    // 
+    let listOfAllWordsWeCanPlay (st : state) =
+        List.fold (fun (acc: (string * (Coordinate * Direction)) list) (key,value) ->
+            let (coord, dir) = value
+            let longestWord = constructDictTrie st key coord dir
+            if longestWord.Length > 0 then
+                (longestWord, value)::acc
+            else
+                acc
+        ) [] (gatherWordsOnTheBoard st)
+    
+    // 
+    let longestWordWeCanPlay (st : state) =
+        List.fold (fun (accWord : (string * (Coordinate * Direction))) (currWord : string * (Coordinate * Direction)) ->
+                let move = parseBotMove st currWord
+                let tempSt = createTempState st move
+                let tempBoard = gatherWordsOnTheBoard tempSt
+                
+                // This determines whether or not the word is valid:
+                let isWordValid =
+                    List.fold (fun (sVal : bool) (s : string, (c, d)) ->
+                            match sVal with
+                            | true ->
+                                if s.Length = 1    then true // test this...
+                                // Recursively go over all tiles to check they exist, specifically use this formula
+                                // to check all pieces: c + (s.Length * (dirToCoord d))
+                                // doesTileExist
+                                
+                                elif (isWord st s) then true
+                                else                    false 
+                            | false -> false    
+                        ) true tempBoard
+                    
+                // If coordinate is outside the playable range, handle that here...    
+                
+                if isWordValid && (fst currWord).Length > (fst accWord).Length then
+                    currWord
+                else
+                    accWord
+                
+        ) ("", ((0,0), Center)) (listOfAllWordsWeCanPlay st)
+    
+    // let longestWordWeCanPlay (st : state) =
+//     let words = listOfAllWordsWeCanPlay st
+
+//     let isWordValidAsync (tempBoard: (string * (Coordinate * Direction)) list) (st: state) (s: string, (c, d)): Async<bool> = async {
+//         let sVal =
+//             List.fold (fun (sVal: bool) (s: string, (c, d)) ->
+//                 match sVal with
+//                 | true ->
+//                     if s.Length = 1 then true
+//                     elif (isWord st s) then true
+//                     else false
+//                 | false -> false
+//             ) true tempBoard
+//         return sVal
+//     }
+    
     
     // 31. Print statement to double check the parsed syntax when debugging:
     let printParseMove (parsedMove : ((int * int) * (uint32 * (char * int))) list) =
         parsedMove |> List.iter (printf "Command :: %A\n")
+    
+    let printNumPiecesInHand (st : state) =
+        printf "\nNum pieces in hand: %i\n" (MultiSet.size st.hand) 
+    
+    let printNumPiecesOnBoard (st : state) =
+        printf "\nNum pieces on board: %i\n" st.piecesOnBoard.Count 
+        
+    let printNumPiecesLeft (st : state) =
+        printf "\nPieces Left: %i\n" st.piecesLeft
+    
+    let printAllWordsWeCouldPlay (lstOfWords : (string * (coord * Direction)) list) =
+        printf "\n!================== ALL WORDS ==================!\n"
+        lstOfWords |> List.iter (fun (s, (c, d)) ->
+                printf "String     :: %s\n" s
+                printf "Coordinate :: (%i,%i)\n" (fst c) (snd c)
+                printf "Direction  :: %A\n" d
+            )
+        printf "\n!===============================================!\n"

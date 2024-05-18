@@ -25,7 +25,6 @@ module internal MultiSet
     let addSingle (a : 'a) (R mySet : MultiSet<'a>) : MultiSet<'a> =
         add a (uint32 1) (R mySet)
 
-    // val remove : 'a -> uint32 -> MultiSet<'a> -> MultiSet<'a>
     let remove (a : 'a) (n : uint32) (R mySet  : MultiSet<'a>) : MultiSet<'a> =
         let (numberOfOccurrences : uint32) = numItems a (R (mySet))
         if numberOfOccurrences > n 
@@ -33,8 +32,6 @@ module internal MultiSet
                 R ((Map.remove a mySet).Add(a, (numberOfOccurrences - n)))
             else 
                 R (mySet.Remove a) 
-         //? finds the value of the given key.
-
 
     let removeSingle (a : 'a) (mySet : MultiSet<'a>) : MultiSet<'a> = 
         remove a 1u mySet
