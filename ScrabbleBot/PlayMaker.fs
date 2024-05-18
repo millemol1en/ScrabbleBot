@@ -353,18 +353,23 @@ module internal PlayMaker
                 acc
         ) [] (gatherWordsOnTheBoard st)
     
-    //
+    // 
     let longestWordWeCanPlay (st : state) =
         List.fold (fun (accWord : (string * (Coordinate * Direction))) (currWord : string * (Coordinate * Direction)) ->
                 let move = parseBotMove st currWord
                 let tempSt = createTempState st move
                 let tempBoard = gatherWordsOnTheBoard tempSt
                 
+                // This determines whether or not the word is valid:
                 let isWordValid =
-                    List.fold (fun (sVal : bool) (s : string, (c, _)) ->
+                    List.fold (fun (sVal : bool) (s : string, (c, d)) ->
                             match sVal with
                             | true ->
-                                if s.Length = 1    then true
+                                if s.Length = 1    then true // test this...
+                                // Recursively go over all tiles to check they exist, specifically use this formula
+                                // to check all pieces: c + (s.Length * (dirToCoord d))
+                                // doesTileExist
+                                
                                 elif (isWord st s) then true
                                 else                    false 
                             | false -> false    
