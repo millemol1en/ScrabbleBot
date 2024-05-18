@@ -39,7 +39,7 @@ module RegEx =
         MultiSet.fold (fun _ x i -> forcePrint (sprintf "%d -> (%A, %d)\n" x (Map.find x pieces) i)) ()
 
 module State = 
-    let mkState b d pn h pob np tc = {
+    let mkState b d pn h pob np tc pc = {
         GameState.board         = b
         GameState.dict          = d
         GameState.playerNumber  = pn
@@ -47,6 +47,7 @@ module State =
         GameState.piecesOnBoard = pob
         GameState.numPlayers    = np
         GameState.turnCounter   = tc
+        GameState.piecesLeft    = pc 
     }
     
     //////////////////////////////// NEW FUNCTIONS USED TO HANDLE STATE /////////////////////////////////////////////////
@@ -59,7 +60,15 @@ module State =
     
         aux ms pob
         
+    let sendMoveToServer (cstream : Stream) (moveToPlay : (coord * (uint32 * (char * int))) list) =
+        printf "Move to play size: %i" moveToPlay.Length
         
+        if moveToPlay.IsEmpty then
+            // TODO :: Make it change hand instead
+            send cstream (SMPass)
+        else
+            send cstream (SMPlay moveToPlay)
+    
     let changeTurn (st: state) numPlayers =
         if st.turnCounter >= numPlayers then
             1u
@@ -75,11 +84,7 @@ module Scrabble =
     let playGame cstream pieces (st : state) =
         let rec aux (st : state) =
             Print.printHand pieces (st.hand )
-            
-            
-            
-            let mutable moveToPlay = []
-            
+                        
             //////////////////////////////////// BOT PLAYER ////////////////////////////////////
             if (st.turnCounter = st.playerNumber) then
                 // forcePrint (sprintf "\n================\n It is my turn \n================\n")
@@ -87,22 +92,22 @@ module Scrabble =
                 if (isBoardEmpty st) then
                     let longestWordOnFirstTurn = longestWordWeCanPlayOnTurnOne st
                     
-                    // forcePrint (sprintf "\n================\nLongest word on turn 1 :: %s\n================\n" (longestWordWeCanPlayOnTurnOne st))
+                    forcePrint (sprintf "\n================\nLongest word on turn 1 :: %s\n================\n" (longestWordWeCanPlayOnTurnOne st))
                 
                     let longestParsedWord = parseBotMove st (longestWordOnFirstTurn, ((st.board).center, Horizontal))
                     
                     printParseMove(longestParsedWord)
                     
-                    moveToPlay <- longestParsedWord
+                    sendMoveToServer cstream longestParsedWord
                     
                 else
-                    let longestWord = getLongestWord st
+                    let longestWord = longestWordWeCanPlay st
                     
-                    // forcePrint (sprintf "\n================\nLongest word we can play :: %s\n Longest word coor and dir :: %A\n================\n" (fst longestWord) (snd longestWord))
+                    forcePrint (sprintf "\n================\nLongest word we can play :: %s\n Longest word coor and dir :: %A\n================\n" (fst longestWord) (snd longestWord))
                     
                     let longestParsedWord = parseBotMove st longestWord
 
-                    moveToPlay <- longestParsedWord 
+                    sendMoveToServer cstream longestParsedWord
                     
             //////////////////////////////////////////////////////////////////////////////////
             
@@ -111,56 +116,40 @@ module Scrabble =
             // let move = RegEx.parseMove input
             //////////////////////////////////////////////////////////////////////////////////
             
+            printf "\n\nPieces left on the board: %i\n\n" st.piecesLeft
             
-            
-            // INPUT TO SERVER:
-            if moveToPlay.IsEmpty then
-                send cstream (SMPass)
-            else
-                send cstream (SMPlay moveToPlay)
-            
-            
-            // debugPrint (sprintf "Player %d -> Server:\n%A\n" (st.playerNumber) move) // keep the debug lines. They are useful.            
-
             let msg = recv cstream
-            // debugPrint (sprintf "Player %d <- Server:\n%A\n" (st.playerNumber) move) // keep the debug lines. They are useful.
-
+            
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
-                (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
                 
-                // 01. Update our hand:
+                // TODO :: Make this a global function to allow swapping tiles:
                 let updatedHand : MultiSet.MultiSet<uint32> =
                     ms
                     |> List.map (fun ((_, _), (id, (_, _))) -> id) // Extract played piece IDs
                     |> List.fold (fun acc x -> MultiSet.removeSingle x acc) st.hand // Remove played pieces from hand
                     |> fun hand -> List.fold (fun acc (x, _) -> MultiSet.add x 1u acc) hand newPieces
                                 
-                // 02. Update the board:
-                let updatedBoard = insertMovesIntoState ms st.piecesOnBoard
-                
-                // 03. Only add the necessary parts to the newly updated state:
                 let st' =
                     {
                       st with
                         turnCounter = changeTurn st st.numPlayers
                         hand = updatedHand
-                        piecesOnBoard = updatedBoard
+                        piecesOnBoard   = insertMovesIntoState ms st.piecesOnBoard
+                        piecesLeft      = (st.piecesLeft - uint32 ms.Length)
                     }
                 
                 aux st'
             | RCM (CMPlayed (pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
-                
-                let updatedBoard = insertMovesIntoState ms st.piecesOnBoard
-                
                 // forcePrint(sprintf "\n!Opponent played and the board looks as follows %A !\n" updatedBoard)
                 
                 let st' =
                     {
                       st with
-                        turnCounter = changeTurn st st.numPlayers
-                        piecesOnBoard = updatedBoard
+                        turnCounter     = changeTurn st st.numPlayers
+                        piecesOnBoard   = insertMovesIntoState ms st.piecesOnBoard
+                        piecesLeft      = (st.piecesLeft - uint32 ms.Length)
                     }
                 
                 aux st'
@@ -193,6 +182,7 @@ module Scrabble =
                     {
                       st with
                         turnCounter = changeTurn st st.numPlayers
+                        
                     }
                 
                 aux st'
@@ -227,5 +217,5 @@ module Scrabble =
                   
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
 
-        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet Map.empty numPlayers turnCounter)
+        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet Map.empty numPlayers turnCounter 100u)
         

@@ -9,7 +9,8 @@ module internal GameState
         hand          : MultiSet.MultiSet<uint32>       
         piecesOnBoard : Map<coord, (char * int)>
         turnCounter   : uint32
-        numPlayers    : uint32                          
+        numPlayers    : uint32
+        piecesLeft    : uint32
         // timeout       : uint32 option  
     }
 
