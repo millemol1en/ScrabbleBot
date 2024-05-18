@@ -60,12 +60,11 @@ module State =
     
         aux ms pob
         
-    let sendMoveToServer (cstream : Stream) (moveToPlay : (coord * (uint32 * (char * int))) list) =
+    let sendMoveToServer (cstream : Stream) (st : state) (moveToPlay : (coord * (uint32 * (char * int))) list) =
         printf "Move to play size: %i" moveToPlay.Length
         
         if moveToPlay.IsEmpty then
-            // TODO :: Make it change hand instead
-            send cstream (SMPass)
+            send cstream (SMChange (MultiSet.toList st.hand))
         else
             send cstream (SMPlay moveToPlay)
     
@@ -74,6 +73,9 @@ module State =
             1u
         else
             st.turnCounter + 1u
+            
+        
+    
             
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         
@@ -98,7 +100,7 @@ module Scrabble =
                     
                     printParseMove(longestParsedWord)
                     
-                    sendMoveToServer cstream longestParsedWord
+                    sendMoveToServer cstream st longestParsedWord
                     
                 else
                     let longestWord = longestWordWeCanPlay st
@@ -107,7 +109,7 @@ module Scrabble =
                     
                     let longestParsedWord = parseBotMove st longestWord
 
-                    sendMoveToServer cstream longestParsedWord
+                    sendMoveToServer cstream st longestParsedWord
                     
             //////////////////////////////////////////////////////////////////////////////////
             
@@ -115,26 +117,28 @@ module Scrabble =
             // let input =  System.Console.ReadLine()
             // let move = RegEx.parseMove input
             //////////////////////////////////////////////////////////////////////////////////
-            
-            printf "\n\nPieces left on the board: %i\n\n" st.piecesLeft
-            
+                       
+            printNumPiecesInHand  st  
+            printNumPiecesOnBoard st
+            printNumPiecesLeft    st   
+                     
             let msg = recv cstream
             
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 
-                // TODO :: Make this a global function to allow swapping tiles:
                 let updatedHand : MultiSet.MultiSet<uint32> =
                     ms
                     |> List.map (fun ((_, _), (id, (_, _))) -> id) // Extract played piece IDs
                     |> List.fold (fun acc x -> MultiSet.removeSingle x acc) st.hand // Remove played pieces from hand
-                    |> fun hand -> List.fold (fun acc (x, _) -> MultiSet.add x 1u acc) hand newPieces
-                                
+                    |> fun hand -> List.fold (fun acc (x, _) -> MultiSet.add x 1u acc) hand newPieces    
+                
+                // TODO :: Make this a global function to allow swapping tiles:                                
                 let st' =
                     {
                       st with
-                        turnCounter = changeTurn st st.numPlayers
-                        hand = updatedHand
+                        turnCounter     = changeTurn st st.numPlayers
+                        hand            = updatedHand
                         piecesOnBoard   = insertMovesIntoState ms st.piecesOnBoard
                         piecesLeft      = (st.piecesLeft - uint32 ms.Length)
                     }
@@ -175,14 +179,19 @@ module Scrabble =
                     }
                 
                 aux st'
-            | RCM (CMChangeSuccess (ms)) ->
+            | RCM (CMChangeSuccess (newPieces)) ->
                 (* Successfully swapped pieces *)
+                
+                let updatedHand =
+                    List.fold (fun acc (x, y) ->
+                        MultiSet.add x y acc) MultiSet.empty newPieces
+                
                 
                 let st' =
                     {
                       st with
-                        turnCounter = changeTurn st st.numPlayers
-                        
+                        turnCounter   = changeTurn st st.numPlayers
+                        hand          = updatedHand
                     }
                 
                 aux st'

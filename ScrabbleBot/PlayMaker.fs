@@ -313,10 +313,10 @@ module internal PlayMaker
                 
         parseBotMoveHelper [] ([for c' in s do c']) c d
         
+    // TODO :: Change to style below - me like more...
     let createTempState (st:state) (moves:list<coord * (uint32 * (char * int))>) =
         List.fold (fun acc move ->
             let (coord, (_,(char, charPoints))) = move
-            //debugPrint (sprintf "Inserting move %A %A\n" coord (char))
             let newPlayedLetters = acc.piecesOnBoard |> Map.add coord (char, charPoints)
             let st' =
                 {
@@ -342,6 +342,7 @@ module internal PlayMaker
                 
         aux st plannedPlay
     
+    // 
     let listOfAllWordsWeCanPlay (st : state) =
         List.fold (fun (acc: (string * (Coordinate * Direction)) list) (key,value) ->
             let (coord, dir) = value
@@ -352,6 +353,7 @@ module internal PlayMaker
                 acc
         ) [] (gatherWordsOnTheBoard st)
     
+    //
     let longestWordWeCanPlay (st : state) =
         List.fold (fun (accWord : (string * (Coordinate * Direction))) (currWord : string * (Coordinate * Direction)) ->
                 let move = parseBotMove st currWord
@@ -362,9 +364,9 @@ module internal PlayMaker
                     List.fold (fun (sVal : bool) (s : string, (c, _)) ->
                             match sVal with
                             | true ->
-                                if s.Length = 1  then true
+                                if s.Length = 1    then true
                                 elif (isWord st s) then true
-                                else                  false 
+                                else                    false 
                             | false -> false    
                         ) true tempBoard
                     
@@ -380,14 +382,14 @@ module internal PlayMaker
     // 31. Print statement to double check the parsed syntax when debugging:
     let printParseMove (parsedMove : ((int * int) * (uint32 * (char * int))) list) =
         parsedMove |> List.iter (printf "Command :: %A\n")
-        
+    
     let printNumPiecesInHand (st : state) =
-        printf "\nPieces on board: %i\n" (MultiSet.size st.hand) 
+        printf "\nNum pieces in hand: %i\n" (MultiSet.size st.hand) 
     
     let printNumPiecesOnBoard (st : state) =
-        printf "\nPieces on board: %i\n" st.piecesOnBoard.Count 
+        printf "\nNum pieces on board: %i\n" st.piecesOnBoard.Count 
         
-    let printPiecesLeft (st : state) =
+    let printNumPiecesLeft (st : state) =
         printf "\nPieces Left: %i\n" st.piecesLeft
     
     let printAllWordsWeCouldPlay (lstOfWords : (string * (coord * Direction)) list) =
