@@ -105,14 +105,8 @@ module Scrabble =
                     
                     let longestParsedWord = parseBotMove st longestPlayableMoveAsync
                     
-                    // printf "\n\n Length of parsed word we are playing: %i \n\n" longestParsedWord.Length
-                    // (printParseMove longestParsedWord)
-
                     sendMoveToServer cstream st longestParsedWord
                     
-                    printNumPiecesInHand  st  
-                    // printNumPiecesOnBoard st
-                    // printNumPiecesLeft    st
             else
                 printf "\n\n\n======================================\n OPPONENTS TURN \n======================================\n\n\n"
                     
@@ -130,7 +124,7 @@ module Scrabble =
             match msg with
             | RCM (CMPlaySuccess(ms, points, newPieces)) ->
                 
-                printf "==========================\n\n NUM PIECES FROM SERVER: %i \nAND\n NUM PIECES PLAYED: %i \n\n==========================" newPieces.Length ms.Length
+                //printf "==========================\n\n NUM PIECES FROM SERVER: %i \nAND\n NUM PIECES PLAYED: %i \n\n==========================" newPieces.Length ms.Length
                 
                 let updatedHand : MultiSet.MultiSet<uint32> =
                     ms

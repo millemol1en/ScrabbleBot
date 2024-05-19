@@ -127,6 +127,8 @@ module internal PlayMaker
                     
                     let newCoordinate = (assimilateCoords coordinate (dirToCoord dir) Add)
                     
+                    // We need to further traverse any anchor words which may be associated with the current coordinate and direction.
+                    // 
                     let anchorWord = locateLongestWordHelper currWord piecesLeftInHand trieNode piecesOnBoard newCoordinate dir
                     
                     if isWord && currWord.Length > currLongestWord.Length && doesTileExist st newCoordinate then 
