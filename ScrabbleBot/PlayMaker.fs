@@ -106,22 +106,10 @@ module internal PlayMaker
         | false -> false
     
     // 17. Syntactical sugar for checking if tile has a piece:
-    let (./.) (st : state) (coordinate : Coordinate) =
-        doesTileHavePiece st coordinate
+    
     
     // 18. Check all neighbors:
     // N, E, S, W, NE, SE, NW, SW
-    let checkAllNeighbours (st : state) (coordinate : Coordinate) : Neighbours =
-        let N =   coordinate .+. diagToCoord North
-        let E =   coordinate .+. diagToCoord East
-        let S =   coordinate .+. diagToCoord South
-        let W =   coordinate .+. diagToCoord West
-        let NE =  coordinate .+. diagToCoord NorthEast
-        let NW =  coordinate .+. diagToCoord NorthWest
-        let SE =  coordinate .+. diagToCoord SouthEast
-        let SW =  coordinate .+. diagToCoord SouthWest
-        
-        ((./.) st N, (./.) st E, (./.) st S, (./.) st W, (./.) st NE, (./.) st SE, (./.) st NW, (./.) st SW)
         
     // 19. Check if board is empty:
     let isBoardEmpty (st : state) =
@@ -216,12 +204,33 @@ module internal PlayMaker
                         
             Some (traverseInDirection st.piecesOnBoard initCoord initDir (StringBuilder() ++ cVal))
             
+            
+    let traverseToLocateWordsAsync (st : state) (initCoord : Coordinate) (initDir : Direction) : Async<string option> = async {
+        let rec traverseInDirection (piecesOnBoard : Map<coord, (char * int)>) (currCoord : Coordinate) (currDir : Direction) (accWord : StringBuilder) = async {
+            let stepCoordinate = (assimilateCoords (dirToCoord currDir) currCoord Add)
+            match (piecesOnBoard.TryFind stepCoordinate) with
+            | Some (c, _) ->
+                let! word = traverseInDirection piecesOnBoard stepCoordinate currDir (accWord ++ c)
+                return word
+            | None ->
+                return accWord.ToString()
+        }
+        
+        let stepCoordinate = (assimilateCoords (dirToCoord initDir) initCoord Sub)
+        match (st.piecesOnBoard.TryFind stepCoordinate) with
+        | Some _ -> return None
+        | None ->
+            let (cVal, _) = Map.find initCoord st.piecesOnBoard
+            let! word = traverseInDirection st.piecesOnBoard initCoord initDir (StringBuilder() ++ cVal)
+            return Some word
+    }
+            
     // 25. In this method, we construct our list of words, going in a particular direction and assimilating all
     //     the strings - this will include all playable words. We will later then filter out which are actually
     //     playable and which are not:
     let assimilatePieces (st : state) (direction : Direction) =
         Map.fold (
-            fun (accWordList : (string * (Coordinate * Direction)) list) (coordinate : Coordinate) ((character : char), _) ->
+            fun (accWordList : (string * (Coordinate * Direction)) list) (coordinate : Coordinate) ((_ : char), _) ->
                 match (traverseToLocateWords st coordinate direction) with
                 | Some locatedWord ->
                     (locatedWord, (coordinate, direction)) :: accWordList
@@ -229,6 +238,20 @@ module internal PlayMaker
                     accWordList
                 
             ) [] st.piecesOnBoard
+        
+    let assimilatePiecesAsync (st : state) (direction : Direction) : Async<(string * (Coordinate * Direction)) list> = async {
+        let tasks = 
+            st.piecesOnBoard
+            |> Map.toSeq
+            |> Seq.map (fun (coordinate, (_: char, _)) -> async {
+                match! traverseToLocateWordsAsync st coordinate direction with
+                | Some locatedWord -> return Some (locatedWord, (coordinate, direction))
+                | None -> return None
+            })
+        
+        let! results = tasks |> Async.Parallel
+        return results |> Array.choose id |> List.ofArray
+    }
         
     // 26. Along with functions '24' and '25', we traverse in the core directions playable directions
     //     'horizontally' or 'vertically' - to try and find playable words:
@@ -238,6 +261,13 @@ module internal PlayMaker
                 
         wordsGoingUpToDown @ wordsGoingLeftToRight
         
+        
+    let gatherWordsOnTheBoardAsync (st : state) : Async<(string * (Coordinate * Direction)) list> = async {
+        let! wordsGoingUpToDown = assimilatePiecesAsync st Direction.Horizontal
+        let! wordsGoingLeftToRight = assimilatePiecesAsync st Direction.Vertical
+        
+        return wordsGoingUpToDown @ wordsGoingLeftToRight
+    }
     
     // 29. Our play is on the first turn.
     //     In this case, the board is clean and a play must be made in the center of the board.
@@ -309,6 +339,35 @@ module internal PlayMaker
                 acc
         ) [] (gatherWordsOnTheBoard st)
     
+    let listOfAllWordsWeCanPlayAsync (st : state) : Async<(string * (Coordinate * Direction)) list> = async {
+    // Await the result of gatherWordsOnTheBoardAsync
+        let! wordsOnBoard = gatherWordsOnTheBoardAsync st
+        
+        // Perform the fold operation asynchronously
+        return List.fold (fun (acc: (string * (Coordinate * Direction)) list) (key, value) ->
+            let (coord, dir) = value
+            let longestWord = constructDictTrie st key coord dir
+            if longestWord.Length > 0 then
+                (longestWord, value) :: acc
+            else
+                acc
+        ) [] wordsOnBoard
+    }
+    
+    
+    let isWordValidAsync (st : state) (tempBoard : (string * (Coordinate * Direction)) list) : Async<bool> = async {
+        let sVal =
+             List.fold (fun (sVal: bool) (s: string, (c, d)) ->
+                 match sVal with
+                 | true ->
+                     if s.Length = 1 then true
+                     elif (isWord st s) then true
+                     else false
+                 | false -> false
+             ) true tempBoard
+        return sVal
+    }
+    
     // 
     let longestWordWeCanPlay (st : state) =
         List.fold (fun (accWord : (string * (Coordinate * Direction))) (currWord : string * (Coordinate * Direction)) ->
@@ -316,8 +375,10 @@ module internal PlayMaker
                 let tempSt = createTempState st move
                 let tempBoard = gatherWordsOnTheBoard tempSt
                 
+                let isWordValid = Async.RunSynchronously (isWordValidAsync st tempBoard)
+                
                 // This determines whether or not the word is valid:
-                let isWordValid =
+                let isWordValid2=
                     List.fold (fun (sVal : bool) (s : string, (c, d)) ->
                             match sVal with
                             | true ->
@@ -339,6 +400,37 @@ module internal PlayMaker
                     accWord
                 
         ) ("", ((0,0), Center)) (listOfAllWordsWeCanPlay st)
+        
+    let longestWordWeCanPlayAsync (st : state) : Async<(string * (Coordinate * Direction))> = async {
+    // Await the result of listOfAllWordsWeCanPlayAsync
+        let! allWords = listOfAllWordsWeCanPlayAsync st
+        
+        // Perform the fold operation asynchronously
+        return List.fold (fun (accWord : (string * (Coordinate * Direction))) (currWord : string * (Coordinate * Direction)) ->
+            async {
+                let move = parseBotMove st currWord
+                let tempSt = createTempState st move
+                let! tempBoard = gatherWordsOnTheBoardAsync tempSt
+                
+                let! isWordValid = isWordValidAsync st tempBoard
+                
+                let isWordValid2 =
+                    List.fold (fun (sVal : bool) (s : string, (c, d)) ->
+                        match sVal with
+                        | true ->
+                            if s.Length = 1 then true
+                            elif (isWord st s) then true
+                            else false
+                        | false -> false    
+                    ) true tempBoard
+                
+                if isWordValid && (fst currWord).Length > (fst accWord).Length then
+                    return currWord
+                else
+                    return accWord
+            } |> Async.RunSynchronously
+        ) ("", ((0, 0), Center)) allWords
+    }
     
     // let longestWordWeCanPlay (st : state) =
 //     let words = listOfAllWordsWeCanPlay st
@@ -355,7 +447,6 @@ module internal PlayMaker
 //             ) true tempBoard
 //         return sVal
 //     }
-    
     
     // 31. Print statement to double check the parsed syntax when debugging:
     let printParseMove (parsedMove : ((int * int) * (uint32 * (char * int))) list) =
@@ -378,3 +469,28 @@ module internal PlayMaker
                 printf "Direction  :: %A\n" d
             )
         printf "\n!===============================================!\n"
+        
+        
+    //////////////////////////////////////////////////
+    //                                              //
+    //                                              //
+    //              DEPRECIATED CODE                //
+    //                                              //
+    //                                              //
+    //////////////////////////////////////////////////
+    
+    
+    let (./.) (st : state) (coordinate : Coordinate) =
+        doesTileHavePiece st coordinate
+        
+    let checkAllNeighbours (st : state) (coordinate : Coordinate) : Neighbours =
+        let N =   coordinate .+. diagToCoord North
+        let E =   coordinate .+. diagToCoord East
+        let S =   coordinate .+. diagToCoord South
+        let W =   coordinate .+. diagToCoord West
+        let NE =  coordinate .+. diagToCoord NorthEast
+        let NW =  coordinate .+. diagToCoord NorthWest
+        let SE =  coordinate .+. diagToCoord SouthEast
+        let SW =  coordinate .+. diagToCoord SouthWest
+        
+        ((./.) st N, (./.) st E, (./.) st S, (./.) st W, (./.) st NE, (./.) st SE, (./.) st NW, (./.) st SW)
