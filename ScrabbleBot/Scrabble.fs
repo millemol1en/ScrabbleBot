@@ -99,8 +99,7 @@ module Scrabble =
                     sendMoveToServer cstream st longestParsedWord
                     
                 else
-                    let longestPlayableMoveAsync = longestWordWeCanPlayAsync st |> Async.RunSynchronously
-                    let longestWord = longestWordWeCanPlay st
+                    let longestPlayableMoveAsync = longestPlayableWordAsync st |> Async.RunSynchronously
                     
                     //forcePrint (sprintf "\n================\nLongest word we can play :: %s\n Longest word coor and dir :: %A\n================\n" (fst longestWord) (snd longestWord))
                     
