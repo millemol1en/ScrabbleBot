@@ -1,5 +1,5 @@
 Multi-player (yes)
 Dictionary (yes)
 playing on all boards (no)
-parallelism (in progress)
-Respect the timeout flag (in progress)
+parallelism (yes)
+Respect the timeout flag (no)
