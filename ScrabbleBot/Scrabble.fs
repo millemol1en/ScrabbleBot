@@ -136,7 +136,7 @@ module Scrabble =
                     ms
                     |> List.map (fun ((_, _), (id, (_, _))) -> id) // Extract played piece IDs 
                     |> List.fold (fun acc x -> MultiSet.removeSingle x acc) st.hand // Remove played pieces from hand
-                    |> fun hand -> List.fold (fun acc (x, _) -> MultiSet.addSingle x acc) hand newPieces
+                    |> fun hand -> List.fold (fun acc (x, num) -> MultiSet.add x num acc) hand newPieces
                 
                 // TODO :: Make this a global function to allow swapping tiles:                                
                 let st' =
